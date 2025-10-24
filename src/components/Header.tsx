@@ -1,4 +1,4 @@
-import { Home, Search, PlusSquare, Heart, User, LogOut } from "lucide-react";
+import { Home, Search, PlusSquare, Heart, User, LogOut, Video } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,14 @@ export const Header = () => {
             }`}
           >
             <Search className="h-6 w-6" />
+          </Link>
+          <Link
+            to="/reels"
+            className={`transition-colors hover:text-primary ${
+              isActive("/reels") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Video className="h-6 w-6" />
           </Link>
           <Link
             to="/create"
