@@ -337,7 +337,7 @@ const Messages = () => {
       <div className="flex h-screen">
         <div className="w-80 border-r border-border bg-card">
           <div className="p-4 border-b border-border flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h2 className="text-xl font-semibold">Messages</h2>
