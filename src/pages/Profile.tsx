@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,12 +155,21 @@ const Profile = () => {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-start gap-8 mb-6">
-            <Avatar className="h-32 w-32">
-              <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback className="text-3xl">
-                {profile.username.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            {isOwnProfile ? (
+              <AvatarUpload
+                userId={userId!}
+                currentAvatarUrl={profile.avatar_url}
+                username={profile.username}
+                onUploadComplete={fetchProfile}
+              />
+            ) : (
+              <Avatar className="h-32 w-32">
+                <AvatarImage src={profile.avatar_url} />
+                <AvatarFallback className="text-3xl">
+                  {profile.username.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
 
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
