@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon } from "lucide-react";
+import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -36,6 +37,7 @@ interface CallSession {
 const Messages = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -334,7 +336,10 @@ const Messages = () => {
     <div className="min-h-screen bg-background">
       <div className="flex h-screen">
         <div className="w-80 border-r border-border bg-card">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <h2 className="text-xl font-semibold">Messages</h2>
           </div>
           <div className="overflow-y-auto">

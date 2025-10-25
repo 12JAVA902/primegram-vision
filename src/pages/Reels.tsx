@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ReelCard } from "@/components/ReelCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Reels = () => {
@@ -85,6 +85,16 @@ const Reels = () => {
         onClick={() => navigate("/home")}
       >
         <X className="h-6 w-6" />
+      </Button>
+
+      {/* Add Reel button */}
+      <Button
+        variant="default"
+        size="icon"
+        className="absolute top-4 right-4 z-50 bg-primary hover:bg-primary/90 text-white rounded-full h-12 w-12"
+        onClick={() => navigate("/reels/dashboard")}
+      >
+        <Plus className="h-6 w-6" />
       </Button>
 
       {/* Reels container */}
