@@ -1,4 +1,4 @@
-import { Home, Search, PlusSquare, Heart, User, LogOut, Video } from "lucide-react";
+import { Home, Search, PlusSquare, Heart, User, LogOut, Video, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,14 @@ export const Header = () => {
             }`}
           >
             <PlusSquare className="h-6 w-6" />
+          </Link>
+          <Link
+            to="/messages"
+            className={`transition-colors hover:text-primary ${
+              isActive("/messages") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <MessageCircle className="h-6 w-6" />
           </Link>
           <Link
             to="/notifications"

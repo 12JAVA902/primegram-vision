@@ -13,6 +13,7 @@ import Explore from "./pages/Explore";
 import Reels from "./pages/Reels";
 import ReelsDashboard from "./pages/ReelsDashboard";
 import Notifications from "./pages/Notifications";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/explore" element={<Explore />} />
             <Route path="/reels" element={<Reels />} />
             <Route path="/reels/dashboard" element={<ReelsDashboard />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/notifications" element={<Notifications />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
