@@ -31,8 +31,12 @@ const Welcome = () => {
         Primegram
       </h1>
 
-      <p className="text-white/70 text-lg mb-12">
+      <p className="text-white/70 text-lg mb-4">
         Share Your Moments
+      </p>
+
+      <p className="text-white/40 text-sm mb-12">
+        Sponsored by <span className="text-white/70 font-semibold">JAVA PRIME</span> & <span className="text-white/70 font-semibold">JP7 ULTRA</span>
       </p>
 
       <div className="absolute bottom-8 text-center">

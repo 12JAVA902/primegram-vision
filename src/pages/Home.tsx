@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
+import { PrimeAI } from "@/components/PrimeAI";
 import { PostCard } from "@/components/PostCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,28 +15,19 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
+    if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (user) {
-      fetchPosts();
-    }
+    if (user) fetchPosts();
   }, [user]);
 
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select(`
-          *,
-          profiles:user_id (id, username, avatar_url),
-          likes (user_id)
-        `)
+        .select(`*, profiles:user_id (id, username, avatar_url), likes (user_id)`)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
@@ -55,9 +48,9 @@ const Home = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="space-y-6">
           {posts.length === 0 ? (
             <div className="text-center py-12">
@@ -70,6 +63,8 @@ const Home = () => {
           )}
         </div>
       </main>
+      <PrimeAI />
+      <BottomNav />
     </div>
   );
 };

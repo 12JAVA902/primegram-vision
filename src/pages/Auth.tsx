@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { Shield } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,9 +22,7 @@ const Auth = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate("/home");
-    }
+    if (user) navigate("/home");
   }, [user, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -32,11 +31,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
         navigate("/home");
@@ -46,13 +41,9 @@ const Auth = () => {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: {
-              username,
-              full_name: fullName,
-            },
+            data: { username, full_name: fullName },
           },
         });
-
         if (error) throw error;
         toast.success("Account created! Welcome to Primegram!");
         navigate("/home");
@@ -75,9 +66,7 @@ const Auth = () => {
             {isLogin ? "Welcome back" : "Create an account"}
           </CardTitle>
           <CardDescription>
-            {isLogin
-              ? "Sign in to continue to Primegram"
-              : "Sign up to start sharing your moments"}
+            {isLogin ? "Sign in to continue to Primegram" : "Sign up to start sharing your moments"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,51 +75,21 @@ const Auth = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="@username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required={!isLogin}
-                    minLength={3}
-                    maxLength={30}
-                  />
+                  <Input id="username" type="text" placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} required={!isLogin} minLength={3} maxLength={30} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
+                  <Input id="fullName" type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
               </>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
             <Button
               type="submit"
@@ -141,16 +100,19 @@ const Auth = () => {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
-            >
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+            <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary hover:underline">
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
+          <div className="mt-6 pt-4 border-t border-border text-center">
+            <Link to="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <Shield className="h-4 w-4" />
+              Administrator Login
+            </Link>
+          </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Sponsored by <span className="font-semibold">JAVA PRIME</span> & <span className="font-semibold">JP7 ULTRA</span>
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
+import { PrimeAI } from "@/components/PrimeAI";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Button } from "@/components/ui/button";
@@ -150,7 +152,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
@@ -252,6 +254,8 @@ const Profile = () => {
           )}
         </div>
       </main>
+      <PrimeAI />
+      <BottomNav />
     </div>
   );
 };

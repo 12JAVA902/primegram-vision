@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
+import { PrimeAI } from "@/components/PrimeAI";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,7 +69,7 @@ const Create = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-elevated">
@@ -132,6 +134,8 @@ const Create = () => {
           </CardContent>
         </Card>
       </main>
+      <PrimeAI />
+      <BottomNav />
     </div>
   );
 };
