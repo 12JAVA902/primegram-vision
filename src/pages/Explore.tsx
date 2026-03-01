@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
+import { PrimeAI } from "@/components/PrimeAI";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +38,7 @@ const Explore = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto mb-8">
@@ -79,6 +81,8 @@ const Explore = () => {
           </div>
         )}
       </main>
+      <PrimeAI />
+      <BottomNav />
     </div>
   );
 };
