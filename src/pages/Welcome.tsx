@@ -1,0 +1,48 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Instagram } from "lucide-react";
+
+const Welcome = () => {
+  const navigate = useNavigate();
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFadeOut(true), 2500);
+    const navTimer = setTimeout(() => navigate("/landing"), 3200);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(navTimer);
+    };
+  }, [navigate]);
+
+  return (
+    <div
+      className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[hsl(291,64%,20%)] via-[hsl(340,82%,30%)] to-[hsl(25,95%,30%)] transition-opacity duration-700 ${
+        fadeOut ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      <div className="animate-pulse mb-8">
+        <div className="bg-gradient-to-tr from-[hsl(291,64%,42%)] via-[hsl(340,82%,52%)] to-[hsl(25,95%,53%)] p-5 rounded-3xl shadow-2xl">
+          <Instagram className="h-16 w-16 text-white" />
+        </div>
+      </div>
+
+      <h1 className="text-5xl font-extrabold text-white tracking-tight mb-3">
+        Primegram
+      </h1>
+
+      <p className="text-white/70 text-lg mb-12">
+        Share Your Moments
+      </p>
+
+      <div className="absolute bottom-8 text-center">
+        <p className="text-white/50 text-sm">Created by</p>
+        <p className="text-white font-semibold text-lg tracking-wide">
+          Javan Omeri
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Welcome;
