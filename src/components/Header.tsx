@@ -1,18 +1,9 @@
-import { Video, MessageCircle, LogOut } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Video, MessageCircle, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export const Header = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/auth");
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -37,12 +28,14 @@ export const Header = () => {
           >
             <MessageCircle className="h-6 w-6" />
           </Link>
-          <button
-            onClick={handleLogout}
-            className="text-muted-foreground hover:text-destructive transition-colors"
+          <Link
+            to="/settings"
+            className={`transition-colors hover:text-primary ${
+              isActive("/settings") ? "text-primary" : "text-muted-foreground"
+            }`}
           >
-            <LogOut className="h-6 w-6" />
-          </button>
+            <Settings className="h-6 w-6" />
+          </Link>
         </nav>
       </div>
     </header>

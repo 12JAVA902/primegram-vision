@@ -73,6 +73,12 @@ const Auth = () => {
     }
   };
 
+  const handleGuestLogin = () => {
+    sessionStorage.setItem("guest_mode", "true");
+    toast.success("Welcome, Guest! You can browse posts and videos.");
+    navigate("/home");
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) { toast.error("Enter your email"); return; }
@@ -172,6 +178,17 @@ const Auth = () => {
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
+          {isLogin && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          )}
           <div className="mt-6 pt-4 border-t border-border text-center">
             <Link to="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
               <Shield className="h-4 w-4" />

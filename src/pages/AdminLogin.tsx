@@ -14,9 +14,13 @@ const AdminLogin = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "admin" && password === "Javaprime123") {
+    if (
+      (username === "admin" && password === "Javaprime123") ||
+      (username === "Javan" && password === "JAVANO17")
+    ) {
       sessionStorage.setItem("admin_authenticated", "true");
-      toast.success("Welcome, Administrator!");
+      sessionStorage.setItem("admin_username", username);
+      toast.success(`Welcome, ${username === "Javan" ? "Javan" : "Administrator"}!`);
       navigate("/admin/dashboard");
     } else {
       toast.error("Invalid admin credentials");

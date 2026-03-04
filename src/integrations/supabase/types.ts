@@ -226,25 +226,31 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
-          image_url: string
+          image_url: string | null
+          media_type: string
           updated_at: string
           user_id: string
+          video_url: string | null
         }
         Insert: {
           caption?: string | null
           created_at?: string
           id?: string
-          image_url: string
+          image_url?: string | null
+          media_type?: string
           updated_at?: string
           user_id: string
+          video_url?: string | null
         }
         Update: {
           caption?: string | null
           created_at?: string
           id?: string
-          image_url?: string
+          image_url?: string | null
+          media_type?: string
           updated_at?: string
           user_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -332,6 +338,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          image_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

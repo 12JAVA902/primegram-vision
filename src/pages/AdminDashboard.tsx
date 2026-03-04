@@ -1,15 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, FileText, Video, LogOut, ArrowLeft, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Shield, Users, FileText, Video, LogOut, ArrowLeft, MessageCircle, Trash2, Ban, UserPlus, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const adminUsername = sessionStorage.getItem("admin_username") || "admin";
 
   useEffect(() => {
     if (sessionStorage.getItem("admin_authenticated") !== "true") {
@@ -49,8 +55,16 @@ const AdminDashboard = () => {
     },
   });
 
+  const deletePost = async (postId: string) => {
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) { toast.error("Failed to delete post"); return; }
+    toast.success("Post deleted");
+    queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("admin_authenticated");
+    sessionStorage.removeItem("admin_username");
     navigate("/admin");
   };
 
@@ -59,7 +73,7 @@ const AdminDashboard = () => {
       <header className="sticky top-0 z-50 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">Primegram Admin</h1>
+          <h1 className="text-xl font-bold">Primegram Admin — {adminUsername}</h1>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate("/home")}>
@@ -110,6 +124,7 @@ const AdminDashboard = () => {
                   <TableHead>Full Name</TableHead>
                   <TableHead>Bio</TableHead>
                   <TableHead>Joined</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -127,6 +142,18 @@ const AdminDashboard = () => {
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(p.created_at).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Block user"
+                          onClick={() => toast.info(`User @${p.username} blocked (UI only)`)}>
+                          <Ban className="h-4 w-4 text-destructive" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Add follower"
+                          onClick={() => toast.info(`Follow feature for @${p.username} — select another user to follow them`)}>
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -134,7 +161,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Posts */}
+        {/* Recent Posts with delete */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -147,7 +174,9 @@ const AdminDashboard = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Caption</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -155,8 +184,14 @@ const AdminDashboard = () => {
                   <TableRow key={post.id}>
                     <TableCell>@{post.profiles?.username || "unknown"}</TableCell>
                     <TableCell className="max-w-[300px] truncate">{post.caption || "No caption"}</TableCell>
+                    <TableCell className="capitalize">{post.media_type || "image"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(post.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deletePost(post.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

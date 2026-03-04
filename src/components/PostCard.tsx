@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ interface PostCardProps {
   post: {
     id: string;
     image_url: string;
+    video_url?: string;
+    media_type?: string;
     caption: string;
     created_at: string;
     profiles: {
@@ -23,18 +25,23 @@ interface PostCardProps {
     likes: any[];
   };
   onLikeChange?: () => void;
+  isGuest?: boolean;
 }
 
-export const PostCard = ({ post, onLikeChange }: PostCardProps) => {
+export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(
     post.likes.some((like) => like.user_id === user?.id)
   );
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
+  const [muted, setMuted] = useState(false);
 
   const handleLike = async () => {
-    if (!user) return;
+    if (!user || isGuest) {
+      if (isGuest) toast.info("Sign in to like posts");
+      return;
+    }
     
     setLoading(true);
     try {
@@ -44,7 +51,6 @@ export const PostCard = ({ post, onLikeChange }: PostCardProps) => {
           .delete()
           .eq("post_id", post.id)
           .eq("user_id", user.id);
-
         if (error) throw error;
         setLiked(false);
         setLikeCount((prev) => prev - 1);
@@ -52,7 +58,6 @@ export const PostCard = ({ post, onLikeChange }: PostCardProps) => {
         const { error } = await supabase
           .from("likes")
           .insert({ post_id: post.id, user_id: user.id });
-
         if (error) throw error;
         setLiked(true);
         setLikeCount((prev) => prev + 1);
@@ -64,6 +69,8 @@ export const PostCard = ({ post, onLikeChange }: PostCardProps) => {
       setLoading(false);
     }
   };
+
+  const isVideo = post.media_type === "video" && post.video_url;
 
   return (
     <Card className="overflow-hidden shadow-card hover:shadow-elevated transition-shadow duration-300">
@@ -82,33 +89,42 @@ export const PostCard = ({ post, onLikeChange }: PostCardProps) => {
         </Button>
       </div>
 
-      <img
-        src={post.image_url}
-        alt="Post"
-        className="w-full aspect-square object-cover"
-      />
+      {isVideo ? (
+        <div className="relative">
+          <video
+            src={post.video_url}
+            className="w-full aspect-square object-cover"
+            autoPlay
+            loop
+            muted={muted}
+            playsInline
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute bottom-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full h-8 w-8"
+            onClick={() => setMuted(!muted)}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
+        </div>
+      ) : (
+        <img
+          src={post.image_url}
+          alt="Post"
+          className="w-full aspect-square object-cover"
+        />
+      )}
 
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLike}
-              disabled={loading}
-              className="group"
-            >
-              <Heart
-                className={`h-6 w-6 transition-colors ${
-                  liked ? "fill-red-500 text-red-500" : "group-hover:text-muted-foreground"
-                }`}
-              />
+            <Button variant="ghost" size="icon" onClick={handleLike} disabled={loading} className="group">
+              <Heart className={`h-6 w-6 transition-colors ${liked ? "fill-red-500 text-red-500" : "group-hover:text-muted-foreground"}`} />
             </Button>
-            <Link to={`/post/${post.id}`}>
-              <Button variant="ghost" size="icon">
-                <MessageCircle className="h-6 w-6" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" onClick={() => isGuest && toast.info("Sign in to comment")}>
+              <MessageCircle className="h-6 w-6" />
+            </Button>
             <Button variant="ghost" size="icon">
               <Send className="h-6 w-6" />
             </Button>
