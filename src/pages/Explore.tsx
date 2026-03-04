@@ -65,11 +65,11 @@ const Explore = () => {
                 key={post.id}
                 className="aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
               >
-                <img
-                  src={post.image_url}
-                  alt="Post"
-                  className="w-full h-full object-cover"
-                />
+                {post.media_type === "video" && post.video_url ? (
+                  <video src={post.video_url} className="w-full h-full object-cover" muted />
+                ) : (
+                  <img src={post.image_url} alt="Post" className="w-full h-full object-cover" />
+                )}
               </Card>
             ))}
           </div>

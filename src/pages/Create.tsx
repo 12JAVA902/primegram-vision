@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FILTERS = [
   { name: "Normal", css: "" },
@@ -31,12 +32,18 @@ const Create = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(0);
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
+      if (selectedFile.type.startsWith("video/")) {
+        setMediaType("video");
+      } else {
+        setMediaType("image");
+      }
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(selectedFile);
@@ -67,14 +74,33 @@ const Create = () => {
     if (!file || !user) return;
     setLoading(true);
     try {
-      const blob = selectedFilter > 0 ? await applyFilterAndGetBlob() : file;
-      const fileExt = "jpg";
-      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, blob);
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
-      const { error: insertError } = await supabase.from("posts").insert({ user_id: user.id, image_url: urlData.publicUrl, caption });
-      if (insertError) throw insertError;
+      if (mediaType === "video") {
+        const fileName = `${user.id}/${Math.random()}.mp4`;
+        const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, file);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
+        const { error: insertError } = await supabase.from("posts").insert({
+          user_id: user.id,
+          image_url: urlData.publicUrl,
+          video_url: urlData.publicUrl,
+          media_type: "video",
+          caption,
+        });
+        if (insertError) throw insertError;
+      } else {
+        const blob = selectedFilter > 0 ? await applyFilterAndGetBlob() : file;
+        const fileName = `${user.id}/${Math.random()}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, blob);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
+        const { error: insertError } = await supabase.from("posts").insert({
+          user_id: user.id,
+          image_url: urlData.publicUrl,
+          media_type: "image",
+          caption,
+        });
+        if (insertError) throw insertError;
+      }
       toast.success("Post created successfully!");
       navigate("/home");
     } catch (error: any) {
@@ -100,22 +126,26 @@ const Create = () => {
                   className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
                 >
                   {preview ? (
-                    <img
-                      src={preview}
-                      alt="Preview"
-                      className="w-full h-full object-cover rounded-lg"
-                      style={{ filter: FILTERS[selectedFilter].css || "none" }}
-                    />
+                    mediaType === "video" ? (
+                      <video src={preview} className="w-full h-full object-cover rounded-lg" controls muted />
+                    ) : (
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded-lg"
+                        style={{ filter: FILTERS[selectedFilter].css || "none" }}
+                      />
+                    )
                   ) : (
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <Upload className="h-12 w-12 text-muted-foreground mb-3" />
-                      <p className="text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                      <p className="text-sm text-muted-foreground">Upload image or video</p>
                     </div>
                   )}
-                  <Input id="file-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} required />
+                  <Input id="file-upload" type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} required />
                 </label>
 
-                {preview && (
+                {preview && mediaType === "image" && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Filters</p>
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

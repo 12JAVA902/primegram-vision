@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { PrimeAI } from "@/components/PrimeAI";
 import { PostCard } from "@/components/PostCard";
+import { StoriesBar } from "@/components/StoriesBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
@@ -13,14 +14,15 @@ const Home = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isGuest = sessionStorage.getItem("guest_mode") === "true";
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/auth");
-  }, [user, authLoading, navigate]);
+    if (!authLoading && !user && !isGuest) navigate("/auth");
+  }, [user, authLoading, navigate, isGuest]);
 
   useEffect(() => {
-    if (user) fetchPosts();
-  }, [user]);
+    fetchPosts();
+  }, []);
 
   const fetchPosts = async () => {
     try {
@@ -45,11 +47,12 @@ const Home = () => {
     );
   }
 
-  if (!user) return null;
+  if (!user && !isGuest) return null;
 
   return (
     <div className="min-h-screen bg-background pb-16">
       <Header />
+      <StoriesBar />
       <main className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="space-y-6">
           {posts.length === 0 ? (
@@ -58,12 +61,12 @@ const Home = () => {
             </div>
           ) : (
             posts.map((post) => (
-              <PostCard key={post.id} post={post} onLikeChange={fetchPosts} />
+              <PostCard key={post.id} post={post} onLikeChange={fetchPosts} isGuest={isGuest} />
             ))
           )}
         </div>
       </main>
-      <PrimeAI />
+      {!isGuest && <PrimeAI />}
       <BottomNav />
     </div>
   );
