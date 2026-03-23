@@ -8,6 +8,7 @@ import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useWebRTC } from "@/hooks/useWebRTC";
 
 interface Message {
   id: string;
@@ -34,6 +35,132 @@ const CHAT_BACKGROUNDS = [
   { name: "Purple", value: "linear-gradient(135deg, hsl(270 40% 18%), hsl(300 30% 15%))" },
 ];
 
+const formatDuration = (seconds: number) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+const CallOverlay = ({
+  user,
+  remoteUserId,
+  callType,
+  selectedProfile,
+  isCaller,
+  onEnd,
+}: {
+  user: { id: string };
+  remoteUserId: string;
+  callType: "audio" | "video";
+  selectedProfile: Profile | undefined;
+  isCaller: boolean;
+  onEnd: () => void;
+}) => {
+  const {
+    localVideoRef,
+    remoteVideoRef,
+    isConnected,
+    isMuted,
+    isVideoOff,
+    callDuration,
+    startCall,
+    answerCall,
+    hangup,
+    toggleMute,
+    toggleVideo,
+  } = useWebRTC({
+    userId: user.id,
+    remoteUserId,
+    callType,
+    onCallEnded: onEnd,
+  });
+
+  useEffect(() => {
+    if (isCaller) {
+      startCall();
+    } else {
+      answerCall();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      {/* Remote video (full screen) */}
+      {callType === "video" && (
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+
+      {/* Local video (picture-in-picture) */}
+      {callType === "video" && (
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute top-4 right-4 w-28 h-40 rounded-xl object-cover border-2 border-border z-10"
+        />
+      )}
+
+      {/* Audio-only or waiting UI */}
+      {(callType === "audio" || !isConnected) && (
+        <div className="flex-1 flex items-center justify-center z-10">
+          <div className="text-center text-white">
+            <Avatar className="w-32 h-32 mx-auto mb-4">
+              <AvatarImage src={selectedProfile?.avatar_url || undefined} />
+              <AvatarFallback className="text-4xl">{selectedProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <p className="text-2xl font-semibold">{selectedProfile?.full_name || selectedProfile?.username}</p>
+            <p className="text-muted-foreground capitalize">{callType} Call</p>
+            {isConnected ? (
+              <p className="text-sm text-green-400 mt-2">{formatDuration(callDuration)}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2 animate-pulse">
+                {isCaller ? "Calling..." : "Connecting..."}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Connected timer overlay for video */}
+      {callType === "video" && isConnected && (
+        <div className="absolute top-4 left-4 z-10 bg-black/50 rounded-full px-3 py-1">
+          <p className="text-white text-sm font-mono">{formatDuration(callDuration)}</p>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="p-8 flex justify-center gap-4 z-10">
+        <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={toggleMute}>
+          {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+        </Button>
+        {callType === "video" && (
+          <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={toggleVideo}>
+            {isVideoOff ? <VideoOffIcon className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+          </Button>
+        )}
+        <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full" onClick={hangup}>
+          <X className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Hidden audio element for audio-only calls */}
+      {callType === "audio" && (
+        <>
+          <audio ref={localVideoRef as any} autoPlay muted className="hidden" />
+          <audio ref={remoteVideoRef as any} autoPlay className="hidden" />
+        </>
+      )}
+    </div>
+  );
+};
+
 const Messages = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,9 +171,7 @@ const Messages = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [activeCall, setActiveCall] = useState<{ type: "audio" | "video" } | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [activeCall, setActiveCall] = useState<{ type: "audio" | "video"; isCaller: boolean } | null>(null);
   const [chatBg, setChatBg] = useState("");
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; type: string } | null>(null);
@@ -55,28 +180,23 @@ const Messages = () => {
   const { data: profiles } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").neq("id", user?.id);
-      if (error) throw error;
-      return data as Profile[];
+      const { data } = await supabase.from("profiles").select("id, username, avatar_url, full_name").neq("id", user?.id || "");
+      return (data || []) as Profile[];
     },
     enabled: !!user,
   });
 
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  // Listen for incoming calls
+  // Incoming call listener
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("incoming-calls")
+      .channel("call-incoming-" + user.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_sessions", filter: `receiver_id=eq.${user.id}` }, (payload) => {
-        const call = payload.new as any;
-        if (call.status === "ringing") {
-          setIncomingCall({ callerId: call.caller_id, type: call.call_type });
-          // Auto-dismiss after 30s
+        const session = payload.new as any;
+        if (session.status === "ringing") {
+          setIncomingCall({ callerId: session.caller_id, type: session.call_type });
           setTimeout(() => setIncomingCall(null), 30000);
         }
       })
@@ -84,7 +204,7 @@ const Messages = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Listen for incoming message notifications (global)
+  // Message notifications
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -111,14 +231,12 @@ const Messages = () => {
       setMessages(data || []);
     };
     fetchMessages();
-
     const channel = supabase
       .channel("messages")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `sender_id=eq.${selectedChat}` }, (payload) => {
         setMessages((prev) => [...prev, payload.new as Message]);
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user, selectedChat]);
 
@@ -151,20 +269,18 @@ const Messages = () => {
 
   const startCall = async (type: "audio" | "video") => {
     if (!selectedChat || !user) return;
-    setActiveCall({ type });
-    // Create call session in DB
+    setActiveCall({ type, isCaller: true });
     await supabase.from("call_sessions").insert({
       caller_id: user.id,
       receiver_id: selectedChat,
       call_type: type,
       status: "ringing",
     });
-    toast({ title: "Calling...", description: `Starting ${type} call` });
   };
 
   const answerCall = () => {
     if (!incomingCall) return;
-    setActiveCall({ type: incomingCall.type as "audio" | "video" });
+    setActiveCall({ type: incomingCall.type as "audio" | "video", isCaller: false });
     setSelectedChat(incomingCall.callerId);
     setIncomingCall(null);
   };
@@ -174,7 +290,7 @@ const Messages = () => {
   const selectedProfile = profiles?.find((p) => p.id === selectedChat);
   const incomingCallerProfile = profiles?.find((p) => p.id === incomingCall?.callerId);
 
-  // Full-screen chat view when a chat is selected
+  // Full-screen chat view
   if (selectedChat) {
     return (
       <div className="h-screen flex flex-col bg-background">
@@ -259,34 +375,16 @@ const Messages = () => {
           )}
         </div>
 
-        {/* Call overlay */}
-        {activeCall && (
-          <div className="fixed inset-0 bg-black z-50 flex flex-col">
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center text-white">
-                <Avatar className="w-32 h-32 mx-auto mb-4">
-                  <AvatarImage src={selectedProfile?.avatar_url || undefined} />
-                  <AvatarFallback className="text-4xl">{selectedProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <p className="text-2xl font-semibold">{selectedProfile?.full_name || selectedProfile?.username}</p>
-                <p className="text-muted-foreground capitalize">{activeCall.type} Call</p>
-                <p className="text-sm text-muted-foreground mt-2">Calling...</p>
-              </div>
-            </div>
-            <div className="p-8 flex justify-center gap-4">
-              <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={() => setIsMuted(!isMuted)}>
-                {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-              </Button>
-              {activeCall.type === "video" && (
-                <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={() => setIsVideoOff(!isVideoOff)}>
-                  {isVideoOff ? <VideoOffIcon className="h-6 w-6" /> : <Video className="h-6 w-6" />}
-                </Button>
-              )}
-              <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full" onClick={() => setActiveCall(null)}>
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-          </div>
+        {/* Real WebRTC call overlay */}
+        {activeCall && user && selectedChat && (
+          <CallOverlay
+            user={user}
+            remoteUserId={selectedChat}
+            callType={activeCall.type}
+            selectedProfile={selectedProfile}
+            isCaller={activeCall.isCaller}
+            onEnd={() => setActiveCall(null)}
+          />
         )}
 
         {/* Incoming call overlay */}
@@ -303,7 +401,7 @@ const Messages = () => {
                 <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full" onClick={declineCall}>
                   <X className="h-8 w-8" />
                 </Button>
-                <Button className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700" size="icon" onClick={answerCall}>
+                <Button className="h-16 w-16 rounded-full bg-[hsl(142_71%_45%)] hover:bg-[hsl(142_71%_38%)]" size="icon" onClick={answerCall}>
                   <Phone className="h-8 w-8" />
                 </Button>
               </div>
@@ -338,7 +436,7 @@ const Messages = () => {
         ))}
       </div>
 
-      {/* Incoming call overlay on contacts list too */}
+      {/* Incoming call overlay on contacts list */}
       {incomingCall && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
           <div className="text-center text-white">
@@ -352,7 +450,7 @@ const Messages = () => {
               <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full" onClick={declineCall}>
                 <X className="h-8 w-8" />
               </Button>
-              <Button className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700" size="icon" onClick={answerCall}>
+              <Button className="h-16 w-16 rounded-full bg-[hsl(142_71%_45%)] hover:bg-[hsl(142_71%_38%)]" size="icon" onClick={answerCall}>
                 <Phone className="h-8 w-8" />
               </Button>
             </div>
