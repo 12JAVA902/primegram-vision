@@ -43,7 +43,7 @@ const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+  const recordingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeCall, setActiveCall] = useState<{ type: "audio" | "video" } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
