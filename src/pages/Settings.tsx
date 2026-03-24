@@ -28,7 +28,7 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="min-h-screen pb-16 relative z-10">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-lg">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>

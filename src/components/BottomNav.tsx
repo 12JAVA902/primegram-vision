@@ -17,7 +17,7 @@ export const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border backdrop-blur supports-[backdrop-filter]:bg-background/95">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">
       <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
           <Link

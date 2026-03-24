@@ -8,7 +8,7 @@ export const Header = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 bg-background border-b border-border backdrop-blur supports-[backdrop-filter]:bg-background/95">
+    <header className="sticky top-0 z-50 glass border-b border-border">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         <Logo />
         <nav className="flex items-center gap-5">

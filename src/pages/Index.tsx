@@ -15,7 +15,7 @@ const Index = () => {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+    <div className="min-h-screen flex items-center justify-center relative z-10">
       <div className="text-center space-y-8 p-8">
         <div className="flex justify-center mb-8">
           <Logo className="scale-150" />
