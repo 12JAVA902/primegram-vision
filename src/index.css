@@ -38,11 +38,11 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(291 64% 42%), hsl(340 82% 52%), hsl(25 95% 53%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-primary: linear-gradient(135deg, hsl(291 64% 52%), hsl(340 82% 58%), hsl(25 95% 53%));
+    --gradient-subtle: linear-gradient(180deg, transparent, transparent);
     
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-elevated: 0 10px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    --shadow-card: 0 4px 30px hsl(0 0% 0% / 0.1);
+    --shadow-elevated: 0 10px 40px hsl(0 0% 0% / 0.2);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -90,8 +90,24 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: transparent;
   }
+}
+
+/* Glassmorphism utilities */
+.glass {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: hsla(0, 0%, 10%, 0.4);
+  border: 1px solid hsla(0, 0%, 100%, 0.08);
+}
+
+.glass-light {
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  background: hsla(0, 0%, 10%, 0.3);
+  border: 1px solid hsla(0, 0%, 100%, 0.06);
 }
 
 /* Hide scrollbar for reels */
