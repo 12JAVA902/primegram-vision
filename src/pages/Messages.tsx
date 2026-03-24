@@ -293,9 +293,9 @@ const Messages = () => {
   // Full-screen chat view
   if (selectedChat) {
     return (
-      <div className="h-screen flex flex-col bg-background">
+      <div className="h-screen flex flex-col relative z-10">
         {/* Chat header */}
-        <div className="p-3 border-b border-border bg-card flex items-center justify-between shrink-0">
+        <div className="p-3 border-b border-border glass-light flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setSelectedChat(null)}>
               <ArrowLeft className="h-5 w-5" />
@@ -324,7 +324,7 @@ const Messages = () => {
 
         {/* Background picker */}
         {showBgPicker && (
-          <div className="p-3 border-b border-border bg-card flex gap-2 overflow-x-auto shrink-0">
+          <div className="p-3 border-b border-border glass-light flex gap-2 overflow-x-auto shrink-0">
             {CHAT_BACKGROUNDS.map((bg) => (
               <button
                 key={bg.name}
@@ -351,7 +351,7 @@ const Messages = () => {
         </div>
 
         {/* Input */}
-        <div className="p-3 border-t border-border bg-card shrink-0">
+        <div className="p-3 border-t border-border glass-light shrink-0">
           {isRecording ? (
             <div className="flex items-center gap-3">
               <div className="flex-1 flex items-center gap-2 bg-destructive/10 rounded-full px-4 py-2">
@@ -414,7 +414,7 @@ const Messages = () => {
 
   // Contacts list view
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col relative z-10">
       <div className="p-4 border-b border-border flex items-center gap-3 shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
           <ArrowLeft className="h-5 w-5" />

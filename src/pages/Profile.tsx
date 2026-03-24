@@ -142,7 +142,7 @@ const Profile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen relative z-10">
         <Header />
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-muted-foreground">Profile not found</p>
@@ -152,7 +152,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="min-h-screen pb-16 relative z-10">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
