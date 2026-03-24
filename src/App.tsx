@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LiquidBackground } from "@/components/LiquidBackground";
+import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -31,6 +32,7 @@ const App = () => (
         <LiquidBackground />
         <Toaster />
         <Sonner />
+        <RealtimeNotifications />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Welcome />} />
