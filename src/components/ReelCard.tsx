@@ -26,7 +26,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
