@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Instagram } from "lucide-react";
+import primegramLogo from "@/assets/primegram-logo.png";
 
 const Welcome = () => {
   const navigate = useNavigate();
@@ -22,8 +22,8 @@ const Welcome = () => {
       }`}
     >
       <div className="animate-pulse mb-8">
-        <div className="bg-gradient-to-tr from-[hsl(291,64%,42%)] via-[hsl(340,82%,52%)] to-[hsl(25,95%,53%)] p-5 rounded-3xl shadow-2xl">
-          <Instagram className="h-16 w-16 text-white" />
+        <div className="bg-gradient-to-tr from-[hsl(291,64%,42%)] via-[hsl(340,82%,52%)] to-[hsl(25,95%,53%)] p-4 rounded-3xl shadow-2xl">
+          <img src={primegramLogo} alt="Primegram" className="h-16 w-16" width={64} height={64} />
         </div>
       </div>
 
