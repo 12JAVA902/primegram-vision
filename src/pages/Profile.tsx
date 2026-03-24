@@ -9,18 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Grid, Settings } from "lucide-react";
+import { Loader2, Grid, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Profile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -176,8 +186,13 @@ const Profile = () => {
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
                 <h1 className="text-2xl font-semibold">{profile.username}</h1>
-                {isOwnProfile ? (
-                  <Button variant="outline" size="sm">
+              {isOwnProfile ? (
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setEditName(profile.full_name || "");
+                    setEditBio(profile.bio || "");
+                    setEditWebsite(profile.website || "");
+                    setEditOpen(true);
+                  }}>
                     <Settings className="h-4 w-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -254,6 +269,43 @@ const Profile = () => {
           )}
         </div>
       </main>
+      {/* Edit Profile Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Full Name</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your full name" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Bio</label>
+              <Textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Tell us about yourself" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Website</label>
+              <Input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://yoursite.com" />
+            </div>
+            <Button className="w-full" disabled={saving} onClick={async () => {
+              setSaving(true);
+              try {
+                const { error } = await supabase.from("profiles").update({
+                  full_name: editName, bio: editBio, website: editWebsite
+                }).eq("id", user!.id);
+                if (error) throw error;
+                toast.success("Profile updated!");
+                setEditOpen(false);
+                fetchProfile();
+              } catch { toast.error("Failed to update profile"); }
+              finally { setSaving(false); }
+            }}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <PrimeAI />
       <BottomNav />
     </div>

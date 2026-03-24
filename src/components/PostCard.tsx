@@ -35,7 +35,8 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   );
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleLike = async () => {
     if (!user || isGuest) {
@@ -71,6 +72,20 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   };
 
   const isVideo = post.media_type === "video" && post.video_url;
+  const isOwnPost = user?.id === post.profiles.id;
+
+  const handleDelete = async () => {
+    if (!user || !isOwnPost) return;
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", post.id);
+      if (error) throw error;
+      toast.success("Post deleted");
+      onLikeChange?.();
+    } catch {
+      toast.error("Failed to delete post");
+    }
+    setShowDeleteConfirm(false);
+  };
 
   return (
     <Card className="overflow-hidden shadow-card hover:shadow-elevated transition-shadow duration-300">
@@ -84,16 +99,25 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
           </Avatar>
           <span className="font-semibold">{post.profiles.username}</span>
         </Link>
-        <Button variant="ghost" size="icon">
-          <MoreHorizontal className="h-5 w-5" />
-        </Button>
+        <div className="relative">
+          <Button variant="ghost" size="icon" onClick={() => isOwnPost && setShowDeleteConfirm(!showDeleteConfirm)}>
+            <MoreHorizontal className="h-5 w-5" />
+          </Button>
+          {showDeleteConfirm && isOwnPost && (
+            <div className="absolute right-0 top-full mt-1 glass rounded-lg border border-border shadow-lg z-50 overflow-hidden">
+              <button onClick={handleDelete} className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 whitespace-nowrap">
+                Delete Post
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {isVideo ? (
         <div className="relative">
           <video
             src={post.video_url}
-            className="w-full aspect-square object-cover"
+            className="w-full aspect-[4/5] object-cover"
             autoPlay
             loop
             muted={muted}
@@ -112,7 +136,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
         <img
           src={post.image_url}
           alt="Post"
-          className="w-full aspect-square object-cover"
+          className="w-full aspect-[4/5] object-cover"
         />
       )}
 
