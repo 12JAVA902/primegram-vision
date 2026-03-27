@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX } from "lucide-react";
+import { CommentsSection } from "@/components/CommentsSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [loading, setLoading] = useState(false);
   const [muted, setMuted] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const handleLike = async () => {
     if (!user || isGuest) {
@@ -146,7 +148,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
             <Button variant="ghost" size="icon" onClick={handleLike} disabled={loading} className="group">
               <Heart className={`h-6 w-6 transition-colors ${liked ? "fill-red-500 text-red-500" : "group-hover:text-muted-foreground"}`} />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => isGuest && toast.info("Sign in to comment")}>
+            <Button variant="ghost" size="icon" onClick={() => isGuest ? toast.info("Sign in to comment") : setShowComments(!showComments)}>
               <MessageCircle className="h-6 w-6" />
             </Button>
             <Button variant="ghost" size="icon">
@@ -171,6 +173,8 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
           </p>
         </div>
       </div>
+
+      <CommentsSection postId={post.id} isOpen={showComments} onClose={() => setShowComments(false)} />
     </Card>
   );
 };
