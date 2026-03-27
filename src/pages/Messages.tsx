@@ -4,12 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette } from "lucide-react";
+import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWebRTC } from "@/hooks/useWebRTC";
-
+import { GroupChat } from "@/components/GroupChat";
 interface Message {
   id: string;
   sender_id: string;
@@ -174,6 +174,7 @@ const Messages = () => {
   const [activeCall, setActiveCall] = useState<{ type: "audio" | "video"; isCaller: boolean } | null>(null);
   const [chatBg, setChatBg] = useState("");
   const [showBgPicker, setShowBgPicker] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; type: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -412,14 +413,28 @@ const Messages = () => {
     );
   }
 
+  // Show group chats view
+  if (showGroups) {
+    return (
+      <div className="h-screen flex flex-col relative z-10">
+        <GroupChat onBack={() => setShowGroups(false)} />
+      </div>
+    );
+  }
+
   // Contacts list view
   return (
     <div className="h-screen flex flex-col relative z-10">
-      <div className="p-4 border-b border-border flex items-center gap-3 shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
-          <ArrowLeft className="h-5 w-5" />
+      <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-xl font-semibold">Messages</h2>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowGroups(true)}>
+          <Users className="h-4 w-4 mr-1" /> Groups
         </Button>
-        <h2 className="text-xl font-semibold">Messages</h2>
       </div>
       <div className="flex-1 overflow-y-auto">
         {profiles?.map((profile) => (
