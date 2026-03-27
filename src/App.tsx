@@ -20,6 +20,9 @@ import Messages from "./pages/Messages";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Settings from "./pages/Settings";
+import MusicHub from "./pages/MusicHub";
+import Appearance from "./pages/Appearance";
+import PrivacySecurity from "./pages/PrivacySecurity";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -48,6 +51,9 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/appearance" element={<Appearance />} />
+            <Route path="/settings/privacy" element={<PrivacySecurity />} />
+            <Route path="/music" element={<MusicHub />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

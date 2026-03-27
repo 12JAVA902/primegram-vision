@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { LogOut, User, Shield, Bell, Palette, Info, Download } from "lucide-react";
+import { LogOut, User, Shield, Bell, Palette, Info, Download, Music, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -21,8 +21,10 @@ const Settings = () => {
   const menuItems = [
     { icon: User, label: "Edit Profile", onClick: () => navigate(`/profile/${user?.id}`) },
     { icon: Bell, label: "Notifications", onClick: () => navigate("/notifications") },
-    { icon: Palette, label: "Appearance", onClick: () => toast.info("Coming soon!") },
-    { icon: Shield, label: "Privacy & Security", onClick: () => toast.info("Coming soon!") },
+    { icon: Palette, label: "Appearance", onClick: () => navigate("/settings/appearance") },
+    { icon: Shield, label: "Privacy & Security", onClick: () => navigate("/settings/privacy") },
+    { icon: Music, label: "Music Hub", onClick: () => navigate("/music") },
+    { icon: ShieldCheck, label: "Admin Panel", onClick: () => navigate("/admin") },
     { icon: Download, label: "Download APK", onClick: () => toast.info("APK download will be available soon. Check back later!") },
     { icon: Info, label: "About Primegram", onClick: () => toast.info("Primegram v1.0 — Sponsored by JAVA PRIME & JP7 ULTRA") },
   ];

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { CommentsSection } from "@/components/CommentsSection";
 
 interface ReelCardProps {
   reel: {
@@ -28,6 +29,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const [liked, setLiked] = useState(false);
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -128,7 +130,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
           </span>
         </button>
 
-        <button className="flex flex-col items-center gap-1">
+        <button className="flex flex-col items-center gap-1" onClick={() => setShowComments(!showComments)}>
           <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 hover:bg-white/30 transition-colors">
             <MessageCircle className="h-7 w-7 text-white" />
           </div>
@@ -156,6 +158,13 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
           </div>
         </button>
       </div>
+
+      {/* Comments overlay */}
+      {showComments && (
+        <div className="absolute bottom-20 left-0 right-0 z-20 bg-black/80 backdrop-blur-md rounded-t-2xl max-h-[50vh] overflow-y-auto">
+          <CommentsSection postId={reel.id} isOpen={showComments} onClose={() => setShowComments(false)} />
+        </div>
+      )}
     </div>
   );
 };

@@ -166,7 +166,7 @@ const Profile = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <div className="flex items-start gap-8 mb-6">
+          <div className="flex items-start gap-4 sm:gap-8 mb-6">
             {isOwnProfile ? (
               <AvatarUpload
                 userId={userId!}
@@ -175,7 +175,7 @@ const Profile = () => {
                 onUploadComplete={fetchProfile}
               />
             ) : (
-              <Avatar className="h-32 w-32">
+              <Avatar className="h-20 w-20 sm:h-32 sm:w-32">
                 <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback className="text-3xl">
                   {profile.username.charAt(0).toUpperCase()}
@@ -184,10 +184,10 @@ const Profile = () => {
             )}
 
             <div className="flex-1">
-              <div className="flex items-center gap-4 mb-4">
-                <h1 className="text-2xl font-semibold">{profile.username}</h1>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4">
+                <h1 className="text-lg sm:text-2xl font-semibold">{profile.username}</h1>
               {isOwnProfile ? (
-                  <Button variant="outline" size="sm" onClick={() => {
+                  <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8" onClick={() => {
                     setEditName(profile.full_name || "");
                     setEditBio(profile.bio || "");
                     setEditWebsite(profile.website || "");
@@ -211,7 +211,7 @@ const Profile = () => {
                 )}
               </div>
 
-              <div className="flex gap-8 mb-4">
+              <div className="flex gap-4 sm:gap-8 mb-4 text-sm sm:text-base">
                 <div>
                   <span className="font-semibold">{posts.length}</span> posts
                 </div>
