@@ -8,13 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, KeyRound } from "lucide-react";
+import { Shield, KeyRound, Phone, Mail } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
@@ -26,45 +28,49 @@ const Auth = () => {
     if (user) navigate("/home");
   }, [user, navigate]);
 
-  const resolveEmail = async (identifier: string): Promise<string> => {
-    // If it looks like an email, use directly
-    if (identifier.includes("@")) return identifier;
-    // Otherwise look up by username
-    const { data } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("username", identifier.replace("@", ""))
-      .single();
-    if (!data) throw new Error("User not found with that username");
-    // We can't get email from profiles, so inform user
-    throw new Error("Please sign in with your email address. Username login requires email.");
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isLogin) {
-        let emailToUse = loginIdentifier;
-        if (!loginIdentifier.includes("@")) {
-          // Try username lookup
-          throw new Error("Please use your email address to sign in.");
+        if (!loginIdentifier.includes("@") && !loginIdentifier.startsWith("+")) {
+          throw new Error("Please use your email address or phone number to sign in.");
         }
-        const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
-        if (error) throw error;
+        if (loginIdentifier.startsWith("+")) {
+          const { error } = await supabase.auth.signInWithPassword({ phone: loginIdentifier, password });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({ email: loginIdentifier, password });
+          if (error) throw error;
+        }
         toast.success("Welcome back!");
         navigate("/home");
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/home`,
-            data: { username, full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        toast.success("Account created! Check your email to verify.");
+        if (signupMethod === "phone") {
+          if (!phone.startsWith("+")) {
+            throw new Error("Phone number must start with country code (e.g. +1234567890)");
+          }
+          const { error } = await supabase.auth.signUp({
+            phone,
+            password,
+            options: {
+              data: { username, full_name: fullName },
+            },
+          });
+          if (error) throw error;
+          toast.success("Account created! You may receive an SMS to verify.");
+        } else {
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/home`,
+              data: { username, full_name: fullName },
+            },
+          });
+          if (error) throw error;
+          toast.success("Account created! Check your email to verify.");
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -99,11 +105,11 @@ const Auth = () => {
 
   if (showForgotPassword) {
     return (
-    <div className="min-h-screen flex items-center justify-center relative z-10 p-4">
-      <Card className="w-full max-w-md shadow-elevated bg-black/70 backdrop-blur-xl border border-white/10">
-        <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center"><Logo /></div>
-          <CardTitle>Forgot Password</CardTitle>
+      <div className="min-h-screen flex items-center justify-center relative z-10 p-4">
+        <Card className="w-full max-w-md shadow-elevated bg-black/70 backdrop-blur-xl border border-white/10">
+          <CardHeader className="space-y-4 text-center">
+            <div className="flex justify-center"><Logo /></div>
+            <CardTitle>Forgot Password</CardTitle>
             <CardDescription>Enter your email to receive a reset link</CardDescription>
           </CardHeader>
           <CardContent>
@@ -139,6 +145,27 @@ const Auth = () => {
           <form onSubmit={handleAuth} className="space-y-4">
             {!isLogin && (
               <>
+                {/* Signup method toggle */}
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    variant={signupMethod === "email" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => setSignupMethod("email")}
+                  >
+                    <Mail className="h-4 w-4" /> Email
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={signupMethod === "phone" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => setSignupMethod("phone")}
+                  >
+                    <Phone className="h-4 w-4" /> Phone
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input id="username" type="text" placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={30} />
@@ -150,11 +177,21 @@ const Auth = () => {
               </>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">{isLogin ? "Email / Username / Phone" : "Email"}</Label>
               {isLogin ? (
-                <Input id="email" type="text" placeholder="Email, username, or phone" value={loginIdentifier} onChange={(e) => setLoginIdentifier(e.target.value)} required />
+                <>
+                  <Label htmlFor="login-id">Email or Phone</Label>
+                  <Input id="login-id" type="text" placeholder="Email or +1234567890" value={loginIdentifier} onChange={(e) => setLoginIdentifier(e.target.value)} required />
+                </>
+              ) : signupMethod === "email" ? (
+                <>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </>
               ) : (
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <>
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input id="phone" type="tel" placeholder="+1234567890" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                </>
               )}
             </div>
             <div className="space-y-2">

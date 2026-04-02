@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import { LiquidBackground } from "@/components/LiquidBackground";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
+import { UniversalMusicPlayer } from "@/components/UniversalMusicPlayer";
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -31,36 +33,39 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <LiquidBackground />
-        <Toaster />
-        <Sonner />
-        <RealtimeNotifications />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/landing" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/create" element={<Create />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/reels" element={<Reels />} />
-            <Route path="/reels/dashboard" element={<ReelsDashboard />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/settings/appearance" element={<Appearance />} />
-            <Route path="/settings/privacy" element={<PrivacySecurity />} />
-            <Route path="/music" element={<MusicHub />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <MusicPlayerProvider>
+        <TooltipProvider>
+          <LiquidBackground />
+          <Toaster />
+          <Sonner />
+          <RealtimeNotifications />
+          <UniversalMusicPlayer />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Welcome />} />
+              <Route path="/landing" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/create" element={<Create />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/reels" element={<Reels />} />
+              <Route path="/reels/dashboard" element={<ReelsDashboard />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/appearance" element={<Appearance />} />
+              <Route path="/settings/privacy" element={<PrivacySecurity />} />
+              <Route path="/music" element={<MusicHub />} />
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </MusicPlayerProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
