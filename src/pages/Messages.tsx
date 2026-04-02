@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { GroupChat } from "@/components/GroupChat";
+import { IncomingCallOverlay } from "@/components/IncomingCallOverlay";
 interface Message {
   id: string;
   sender_id: string;
@@ -390,24 +391,13 @@ const Messages = () => {
 
         {/* Incoming call overlay */}
         {incomingCall && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
-            <div className="text-center text-white">
-              <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarImage src={incomingCallerProfile?.avatar_url || undefined} />
-                <AvatarFallback className="text-3xl">{incomingCallerProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <p className="text-xl font-semibold">{incomingCallerProfile?.full_name || incomingCallerProfile?.username}</p>
-              <p className="text-muted-foreground capitalize mb-6">Incoming {incomingCall.type} call</p>
-              <div className="flex gap-6 justify-center">
-                <Button variant="destructive" size="icon" className="h-16 w-16 rounded-full" onClick={declineCall}>
-                  <X className="h-8 w-8" />
-                </Button>
-                <Button className="h-16 w-16 rounded-full bg-[hsl(142_71%_45%)] hover:bg-[hsl(142_71%_38%)]" size="icon" onClick={answerCall}>
-                  <Phone className="h-8 w-8" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <IncomingCallOverlay
+            callerName={incomingCallerProfile?.full_name || incomingCallerProfile?.username || "Unknown"}
+            callerAvatar={incomingCallerProfile?.avatar_url}
+            callType={incomingCall.type}
+            onAccept={answerCall}
+            onDecline={declineCall}
+          />
         )}
       </div>
     );

@@ -1,11 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Phone, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { IncomingCallOverlay } from "@/components/IncomingCallOverlay";
+import { useNavigate } from "react-router-dom";
 
 export const RealtimeNotifications = () => {
   const { user } = useAuth();
+  const [incomingCall, setIncomingCall] = useState<{
+    callerId: string;
+    type: string;
+    callerName: string;
+    callerAvatar: string | null;
+  } | null>(null);
+
+  // We need to attempt navigation but can't use useNavigate outside Router
+  // So we use window.location as fallback
+  const navigateToMessages = () => {
+    window.location.assign("/messages");
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -21,17 +35,25 @@ export const RealtimeNotifications = () => {
           table: "call_sessions",
           filter: `receiver_id=eq.${user.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const call = payload.new as any;
           if (call.status === "ringing") {
-            toast.info(`Incoming ${call.call_type} call`, {
-              duration: 10000,
-              icon: <Phone className="h-5 w-5 text-green-500" />,
-              action: {
-                label: "View",
-                onClick: () => window.location.assign("/messages"),
-              },
+            // Fetch caller profile
+            const { data: caller } = await supabase
+              .from("profiles")
+              .select("username, full_name, avatar_url")
+              .eq("id", call.caller_id)
+              .single();
+
+            setIncomingCall({
+              callerId: call.caller_id,
+              type: call.call_type,
+              callerName: caller?.full_name || caller?.username || "Unknown",
+              callerAvatar: caller?.avatar_url || null,
             });
+
+            // Auto-dismiss after 30s
+            setTimeout(() => setIncomingCall(null), 30000);
           }
         }
       )
@@ -50,7 +72,6 @@ export const RealtimeNotifications = () => {
         },
         async (payload) => {
           const msg = payload.new as any;
-          // Get sender info
           const { data: sender } = await supabase
             .from("profiles")
             .select("username")
@@ -75,5 +96,26 @@ export const RealtimeNotifications = () => {
     };
   }, [user]);
 
-  return null;
+  const handleAccept = () => {
+    setIncomingCall(null);
+    navigateToMessages();
+  };
+
+  const handleDecline = () => {
+    setIncomingCall(null);
+  };
+
+  return (
+    <>
+      {incomingCall && (
+        <IncomingCallOverlay
+          callerName={incomingCall.callerName}
+          callerAvatar={incomingCall.callerAvatar}
+          callType={incomingCall.type}
+          onAccept={handleAccept}
+          onDecline={handleDecline}
+        />
+      )}
+    </>
+  );
 };
