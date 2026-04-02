@@ -35,9 +35,21 @@ const Create = () => {
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast.error("File too large. Maximum size is 50MB.");
+        return;
+      }
+      if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type) && !ALLOWED_VIDEO_TYPES.includes(selectedFile.type)) {
+        toast.error("Invalid file type. Please upload an image or video.");
+        return;
+      }
       setFile(selectedFile);
       if (selectedFile.type.startsWith("video/")) {
         setMediaType("video");
