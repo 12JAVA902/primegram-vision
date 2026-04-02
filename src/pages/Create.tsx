@@ -87,7 +87,7 @@ const Create = () => {
     setLoading(true);
     try {
       if (mediaType === "video") {
-        const fileName = `${user.id}/${Math.random()}.mp4`;
+        const fileName = `${user.id}/${crypto.randomUUID()}.mp4`;
         const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, file);
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
