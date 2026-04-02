@@ -101,7 +101,7 @@ const Create = () => {
         if (insertError) throw insertError;
       } else {
         const blob = selectedFilter > 0 ? await applyFilterAndGetBlob() : file;
-        const fileName = `${user.id}/${Math.random()}.jpg`;
+        const fileName = `${user.id}/${crypto.randomUUID()}.jpg`;
         const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, blob);
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
