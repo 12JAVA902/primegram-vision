@@ -38,8 +38,18 @@ export const StoriesBar = () => {
   const handleAddStory = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB for stories
+    if (file.size > MAX_SIZE) {
+      toast.error("Image too large. Maximum size is 10MB.");
+      return;
+    }
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload an image.");
+      return;
+    }
     try {
-      const fileName = `${user.id}/${Date.now()}.jpg`;
+      const fileName = `${user.id}/${crypto.randomUUID()}.jpg`;
       const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);

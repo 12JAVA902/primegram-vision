@@ -24,8 +24,18 @@ export const AvatarUpload = ({ userId, currentAvatarUrl, username, onUploadCompl
       }
 
       const file = event.target.files[0];
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB for avatars
+      if (file.size > MAX_SIZE) {
+        toast.error("Avatar too large. Maximum size is 5MB.");
+        return;
+      }
+      const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error("Invalid file type. Please upload an image.");
+        return;
+      }
       const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/${Math.random()}.${fileExt}`;
+      const filePath = `${userId}/${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')

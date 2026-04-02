@@ -1,27 +1,43 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Shield, Users, FileText, Video, LogOut, ArrowLeft, MessageCircle, Trash2, Ban, UserPlus, Plus } from "lucide-react";
+import { Shield, Users, FileText, Video, LogOut, ArrowLeft, MessageCircle, Trash2, Ban, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const adminUsername = sessionStorage.getItem("admin_username") || "admin";
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
+  // Server-side admin check
   useEffect(() => {
-    if (sessionStorage.getItem("admin_authenticated") !== "true") {
-      navigate("/admin");
-    }
-  }, [navigate]);
+    const checkAdmin = async () => {
+      if (!user) {
+        navigate("/admin");
+        return;
+      }
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error("You do not have admin access");
+        navigate("/admin");
+        return;
+      }
+      setIsAdmin(true);
+    };
+    checkAdmin();
+  }, [user, navigate]);
 
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -29,6 +45,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
       return data || [];
     },
+    enabled: isAdmin === true,
   });
 
   const { data: posts } = useQuery({
@@ -37,6 +54,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from("posts").select("*, profiles:user_id(username)").order("created_at", { ascending: false });
       return data || [];
     },
+    enabled: isAdmin === true,
   });
 
   const { data: reels } = useQuery({
@@ -45,6 +63,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from("reels").select("*, profiles:user_id(username)").order("created_at", { ascending: false });
       return data || [];
     },
+    enabled: isAdmin === true,
   });
 
   const { data: messages } = useQuery({
@@ -53,6 +72,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from("messages").select("*").order("created_at", { ascending: false }).limit(50);
       return data || [];
     },
+    enabled: isAdmin === true,
   });
 
   const deletePost = async (postId: string) => {
@@ -62,18 +82,25 @@ const AdminDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin_authenticated");
-    sessionStorage.removeItem("admin_username");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/admin");
   };
+
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground animate-pulse">Verifying admin access...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative z-10">
       <header className="sticky top-0 z-50 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">Primegram Admin — {adminUsername}</h1>
+          <h1 className="text-xl font-bold">Primegram Admin</h1>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate("/home")}>
@@ -86,7 +113,6 @@ const AdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
             { label: "Users", count: profiles?.length || 0, icon: Users },
@@ -108,7 +134,6 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Users Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -149,7 +174,7 @@ const AdminDashboard = () => {
                           <Ban className="h-4 w-4 text-destructive" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" title="Add follower"
-                          onClick={() => toast.info(`Follow feature for @${p.username} — select another user to follow them`)}>
+                          onClick={() => toast.info(`Follow feature for @${p.username}`)}>
                           <UserPlus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -161,7 +186,6 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Posts with delete */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -35,9 +35,21 @@ const Create = () => {
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast.error("File too large. Maximum size is 50MB.");
+        return;
+      }
+      if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type) && !ALLOWED_VIDEO_TYPES.includes(selectedFile.type)) {
+        toast.error("Invalid file type. Please upload an image or video.");
+        return;
+      }
       setFile(selectedFile);
       if (selectedFile.type.startsWith("video/")) {
         setMediaType("video");
@@ -75,7 +87,7 @@ const Create = () => {
     setLoading(true);
     try {
       if (mediaType === "video") {
-        const fileName = `${user.id}/${Math.random()}.mp4`;
+        const fileName = `${user.id}/${crypto.randomUUID()}.mp4`;
         const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, file);
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);
@@ -89,7 +101,7 @@ const Create = () => {
         if (insertError) throw insertError;
       } else {
         const blob = selectedFilter > 0 ? await applyFilterAndGetBlob() : file;
-        const fileName = `${user.id}/${Math.random()}.jpg`;
+        const fileName = `${user.id}/${crypto.randomUUID()}.jpg`;
         const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, blob);
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("posts").getPublicUrl(fileName);

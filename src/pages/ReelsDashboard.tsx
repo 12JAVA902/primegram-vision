@@ -18,14 +18,20 @@ const ReelsDashboard = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.type.startsWith("video/")) {
-        toast.error("Please select a video file");
+      if (!selectedFile.type.startsWith("video/") || !ALLOWED_VIDEO_TYPES.includes(selectedFile.type)) {
+        toast.error("Please select a valid video file (MP4, MOV, WebM)");
         return;
       }
-      
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast.error("Video too large. Maximum size is 100MB.");
+        return;
+      }
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -42,7 +48,7 @@ const ReelsDashboard = () => {
     setLoading(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+      const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("reels")
