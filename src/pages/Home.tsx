@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -8,6 +8,8 @@ import { StoriesBar } from "@/components/StoriesBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+
+const MemoizedPostCard = memo(PostCard);
 
 const Home = () => {
   const { user, loading: authLoading } = useAuth();
@@ -20,16 +22,13 @@ const Home = () => {
     if (!authLoading && !user && !isGuest) navigate("/auth");
   }, [user, authLoading, navigate, isGuest]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select(`*, profiles:user_id (id, username, avatar_url), likes (user_id)`)
-        .order("created_at", { ascending: false });
+        .select(`id, image_url, video_url, media_type, caption, created_at, user_id, profiles:user_id (id, username, avatar_url), likes (user_id)`)
+        .order("created_at", { ascending: false })
+        .limit(30);
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
@@ -37,7 +36,11 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   if (authLoading || loading) {
     return (
@@ -61,7 +64,7 @@ const Home = () => {
             </div>
           ) : (
             posts.map((post) => (
-              <PostCard key={post.id} post={post} onLikeChange={fetchPosts} isGuest={isGuest} />
+              <MemoizedPostCard key={post.id} post={post} onLikeChange={fetchPosts} isGuest={isGuest} />
             ))
           )}
         </div>
