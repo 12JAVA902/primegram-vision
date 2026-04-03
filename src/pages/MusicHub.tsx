@@ -55,12 +55,6 @@ const MusicHub = () => {
   const fetchChart = useCallback(async (genreId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("music-search", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        body: undefined,
-      });
-      // Use query params via direct fetch since invoke doesn't support them well
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-search?action=chart&genre_id=${genreId}`;
       const res = await fetch(url, {
         headers: {
