@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Music, Play, Pause, TrendingUp, Link2, CheckCircle2, Loader2 } from "lucide-react";
 import { useMusicPlayer, Track } from "@/contexts/MusicPlayerContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const PLATFORMS = [
