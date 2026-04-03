@@ -1,42 +1,119 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
 
 export interface Track {
   id: string;
   title: string;
   artist: string;
   albumArt: string;
-  platform: "youtube" | "spotify" | "apple";
-  embedUrl: string;
+  platform: "deezer" | "youtube" | "spotify" | "apple";
+  previewUrl: string;
+  embedUrl?: string;
 }
 
 interface MusicPlayerContextType {
   currentTrack: Track | null;
   setCurrentTrack: (track: Track | null) => void;
   isPlayerVisible: boolean;
-  setIsPlayerVisible: (v: boolean) => void;
+  isPlaying: boolean;
+  togglePlayPause: () => void;
+  progress: number;
+  duration: number;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType>({
   currentTrack: null,
   setCurrentTrack: () => {},
   isPlayerVisible: false,
-  setIsPlayerVisible: () => {},
+  isPlaying: false,
+  togglePlayPause: () => {},
+  progress: 0,
+  duration: 0,
 });
 
 export const useMusicPlayer = () => useContext(MusicPlayerContext);
 
 export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [isPlayerVisible, setIsPlayerVisible] = useState(false);
+  const [currentTrack, setCurrentTrackState] = useState<Track | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const animFrameRef = useRef<number>(0);
+
+  useEffect(() => {
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audioRef.current = audio;
+
+    audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
+    audio.addEventListener("ended", () => {
+      setIsPlaying(false);
+      setProgress(0);
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      cancelAnimationFrame(animFrameRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      if (audioRef.current && isPlaying) {
+        setProgress(audioRef.current.currentTime);
+      }
+      animFrameRef.current = requestAnimationFrame(tick);
+    };
+    if (isPlaying) {
+      animFrameRef.current = requestAnimationFrame(tick);
+    } else {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [isPlaying]);
 
   const handleSetTrack = (track: Track | null) => {
-    setCurrentTrack(track);
-    setIsPlayerVisible(!!track);
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!track) {
+      audio.pause();
+      audio.src = "";
+      setCurrentTrackState(null);
+      setIsPlaying(false);
+      setProgress(0);
+      return;
+    }
+
+    audio.src = track.previewUrl;
+    audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    setCurrentTrackState(track);
+    setProgress(0);
+  };
+
+  const togglePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio || !currentTrack) return;
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
   };
 
   return (
     <MusicPlayerContext.Provider
-      value={{ currentTrack, setCurrentTrack: handleSetTrack, isPlayerVisible, setIsPlayerVisible }}
+      value={{
+        currentTrack,
+        setCurrentTrack: handleSetTrack,
+        isPlayerVisible: !!currentTrack,
+        isPlaying,
+        togglePlayPause,
+        progress,
+        duration,
+      }}
     >
       {children}
     </MusicPlayerContext.Provider>

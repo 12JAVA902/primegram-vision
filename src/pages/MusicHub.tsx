@@ -1,42 +1,109 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Music, Play, TrendingUp, Link2, CheckCircle2 } from "lucide-react";
+import { Search, Music, Play, Pause, TrendingUp, Link2, CheckCircle2, Loader2 } from "lucide-react";
 import { useMusicPlayer, Track } from "@/contexts/MusicPlayerContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const PLATFORMS = [
   { id: "spotify" as const, name: "Spotify", color: "bg-green-500", icon: "🎵" },
   { id: "apple" as const, name: "Apple Music", color: "bg-pink-500", icon: "🎶" },
-  { id: "youtube" as const, name: "YouTube Music", color: "bg-red-500", icon: "▶️" },
+  { id: "deezer" as const, name: "Deezer", color: "bg-purple-500", icon: "🎧" },
 ];
 
-const TRENDING_TRACKS: Track[] = [
-  { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", albumArt: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" },
-  { id: "kJQP7kiw5Fk", title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", albumArt: "https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/kJQP7kiw5Fk?autoplay=1" },
-  { id: "RgKAFK5djSk", title: "See You Again", artist: "Wiz Khalifa ft. Charlie Puth", albumArt: "https://img.youtube.com/vi/RgKAFK5djSk/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/RgKAFK5djSk?autoplay=1" },
-  { id: "JGwWNGJdvx8", title: "Shape of You", artist: "Ed Sheeran", albumArt: "https://img.youtube.com/vi/JGwWNGJdvx8/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/JGwWNGJdvx8?autoplay=1" },
-  { id: "OPf0YbXqDm0", title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", albumArt: "https://img.youtube.com/vi/OPf0YbXqDm0/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/OPf0YbXqDm0?autoplay=1" },
-  { id: "9bZkp7q19f0", title: "Gangnam Style", artist: "PSY", albumArt: "https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/9bZkp7q19f0?autoplay=1" },
-  { id: "hT_nvWreIhg", title: "Counting Stars", artist: "OneRepublic", albumArt: "https://img.youtube.com/vi/hT_nvWreIhg/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/hT_nvWreIhg?autoplay=1" },
-  { id: "YQHsXMglC9A", title: "Hello", artist: "Adele", albumArt: "https://img.youtube.com/vi/YQHsXMglC9A/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/YQHsXMglC9A?autoplay=1" },
-  { id: "fRh_vgS2dFE", title: "Sorry", artist: "Justin Bieber", albumArt: "https://img.youtube.com/vi/fRh_vgS2dFE/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/fRh_vgS2dFE?autoplay=1" },
-  { id: "CevxZvSJLk8", title: "Roar", artist: "Katy Perry", albumArt: "https://img.youtube.com/vi/CevxZvSJLk8/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/CevxZvSJLk8?autoplay=1" },
-  { id: "60ItHLz5WEA", title: "Faded", artist: "Alan Walker", albumArt: "https://img.youtube.com/vi/60ItHLz5WEA/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/60ItHLz5WEA?autoplay=1" },
-  { id: "pt8VYOfr8To", title: "Closer", artist: "The Chainsmokers ft. Halsey", albumArt: "https://img.youtube.com/vi/pt8VYOfr8To/mqdefault.jpg", platform: "youtube", embedUrl: "https://www.youtube.com/embed/pt8VYOfr8To?autoplay=1" },
+const GENRES = [
+  { label: "All", id: "0" },
+  { label: "Pop", id: "132" },
+  { label: "Hip-Hop", id: "116" },
+  { label: "R&B", id: "165" },
+  { label: "Rock", id: "152" },
+  { label: "Afrobeats", id: "2" },
+  { label: "Latin", id: "197" },
+  { label: "Electronic", id: "106" },
 ];
 
-const GENRES = ["All", "Pop", "Hip-Hop", "R&B", "Rock", "Afrobeats", "Latin", "Electronic"];
+interface DeezerTrack {
+  id: number;
+  title: string;
+  artist: { name: string };
+  album: { cover_medium: string };
+  preview: string;
+}
+
+const mapDeezerTrack = (t: DeezerTrack): Track => ({
+  id: String(t.id),
+  title: t.title,
+  artist: t.artist.name,
+  albumArt: t.album.cover_medium,
+  platform: "deezer",
+  previewUrl: t.preview,
+});
 
 const MusicHub = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("All");
+  const [selectedGenre, setSelectedGenre] = useState("0");
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
-  const { currentTrack, setCurrentTrack } = useMusicPlayer();
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { currentTrack, setCurrentTrack, isPlaying, togglePlayPause } = useMusicPlayer();
+
+  const fetchChart = useCallback(async (genreId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("music-search", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        body: undefined,
+      });
+      // Use query params via direct fetch since invoke doesn't support them well
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-search?action=chart&genre_id=${genreId}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
+      const json = await res.json();
+      if (json.data) {
+        setTracks(json.data.map(mapDeezerTrack));
+      }
+    } catch (e) {
+      console.error("Chart fetch error:", e);
+      toast.error("Failed to load trending tracks");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    setLoading(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-search?action=search&q=${encodeURIComponent(searchQuery)}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
+      const json = await res.json();
+      if (json.data) {
+        setTracks(json.data.map(mapDeezerTrack));
+      }
+    } catch (e) {
+      console.error("Search error:", e);
+      toast.error("Search failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchChart(selectedGenre);
+  }, [selectedGenre, fetchChart]);
 
   const handleConnect = (platformId: string) => {
     if (connectedPlatforms.includes(platformId)) {
@@ -44,29 +111,17 @@ const MusicHub = () => {
       toast.success("Disconnected");
     } else {
       setConnectedPlatforms((prev) => [...prev, platformId]);
-      toast.success("Connected! Songs from this platform will appear in search.");
+      toast.success("Connected!");
     }
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      const q = encodeURIComponent(searchQuery);
-      setCurrentTrack({
-        id: "search",
-        title: searchQuery,
-        artist: "Search Results",
-        albumArt: "",
-        platform: "youtube",
-        embedUrl: `https://www.youtube.com/embed?listType=search&list=${q}`,
-      });
+  const handleTrackClick = (track: Track) => {
+    if (currentTrack?.id === track.id) {
+      togglePlayPause();
+    } else {
+      setCurrentTrack(track);
     }
   };
-
-  const filteredTracks = TRENDING_TRACKS.filter(
-    (t) =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen pb-32 relative z-10">
@@ -112,7 +167,7 @@ const MusicHub = () => {
                 })}
               </div>
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                Connect platforms to search songs across all your libraries
+                Connect platforms to enhance your music experience
               </p>
             </DialogContent>
           </Dialog>
@@ -127,8 +182,8 @@ const MusicHub = () => {
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="flex-1"
           />
-          <Button onClick={handleSearch} size="icon">
-            <Search className="h-4 w-4" />
+          <Button onClick={handleSearch} size="icon" disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
 
@@ -136,13 +191,16 @@ const MusicHub = () => {
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-4">
           {GENRES.map((genre) => (
             <Button
-              key={genre}
-              variant={selectedGenre === genre ? "default" : "outline"}
+              key={genre.id}
+              variant={selectedGenre === genre.id ? "default" : "outline"}
               size="sm"
               className="flex-shrink-0"
-              onClick={() => setSelectedGenre(genre)}
+              onClick={() => {
+                setSelectedGenre(genre.id);
+                setSearchQuery("");
+              }}
             >
-              {genre}
+              {genre.label}
             </Button>
           ))}
         </div>
@@ -164,33 +222,50 @@ const MusicHub = () => {
         {/* Trending */}
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-accent" />
-          <h2 className="text-lg font-semibold">Trending Now</h2>
+          <h2 className="text-lg font-semibold">
+            {searchQuery ? "Search Results" : "Trending Now"}
+          </h2>
         </div>
 
-        <div className="space-y-2">
-          {filteredTracks.map((track, i) => (
-            <Card
-              key={track.id}
-              className={`cursor-pointer transition-all hover:bg-accent/10 ${currentTrack?.id === track.id ? "ring-1 ring-primary" : ""}`}
-              onClick={() => setCurrentTrack(track)}
-            >
-              <CardContent className="p-3 flex items-center gap-3">
-                <span className="text-sm font-bold text-muted-foreground w-6 text-right">{i + 1}</span>
-                <img
-                  src={track.albumArt}
-                  alt={track.title}
-                  className="w-12 h-12 rounded object-cover"
-                  loading="lazy"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{track.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-                </div>
-                <Play className="h-5 w-5 text-primary flex-shrink-0" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : tracks.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">No tracks found</p>
+        ) : (
+          <div className="space-y-2">
+            {tracks.map((track, i) => {
+              const isActive = currentTrack?.id === track.id;
+              return (
+                <Card
+                  key={track.id}
+                  className={`cursor-pointer transition-all hover:bg-accent/10 ${isActive ? "ring-1 ring-primary" : ""}`}
+                  onClick={() => handleTrackClick(track)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <span className="text-sm font-bold text-muted-foreground w-6 text-right">{i + 1}</span>
+                    <img
+                      src={track.albumArt}
+                      alt={track.title}
+                      className="w-12 h-12 rounded object-cover"
+                      loading="lazy"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{track.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                    </div>
+                    {isActive && isPlaying ? (
+                      <Pause className="h-5 w-5 text-primary flex-shrink-0" />
+                    ) : (
+                      <Play className="h-5 w-5 text-primary flex-shrink-0" />
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </main>
       <BottomNav />
     </div>
