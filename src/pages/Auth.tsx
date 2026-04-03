@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, KeyRound, Phone, Mail } from "lucide-react";
+import { Shield, KeyRound, Phone, Mail, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,6 +24,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // OTP verification state
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpTarget, setOtpTarget] = useState(""); // email or phone used for signup
+  const [otpType, setOtpType] = useState<"email" | "phone">("email");
 
   useEffect(() => {
     if (user) navigate("/home");
@@ -50,7 +57,7 @@ const Auth = () => {
           if (!phone.startsWith("+")) {
             throw new Error("Phone number must start with country code (e.g. +1234567890)");
           }
-          const { error } = await supabase.auth.signUp({
+          const { data, error } = await supabase.auth.signUp({
             phone,
             password,
             options: {
@@ -58,9 +65,13 @@ const Auth = () => {
             },
           });
           if (error) throw error;
-          toast.success("Account created! You may receive an SMS to verify.");
+          // Show OTP screen for phone verification
+          setOtpTarget(phone);
+          setOtpType("phone");
+          setShowOtpScreen(true);
+          toast.success("Verification code sent to your phone!");
         } else {
-          const { error } = await supabase.auth.signUp({
+          const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -69,9 +80,53 @@ const Auth = () => {
             },
           });
           if (error) throw error;
-          toast.success("Account created! Check your email to verify.");
+          // Show OTP screen for email verification
+          setOtpTarget(email);
+          setOtpType("email");
+          setShowOtpScreen(true);
+          toast.success("Verification code sent to your email!");
         }
       }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6) {
+      toast.error("Please enter the full 6-digit code");
+      return;
+    }
+    setLoading(true);
+    try {
+      const verifyPayload = otpType === "phone"
+        ? { phone: otpTarget, token: otpValue, type: "sms" as const }
+        : { email: otpTarget, token: otpValue, type: "email" as const };
+
+      const { error } = await supabase.auth.verifyOtp(verifyPayload);
+      if (error) throw error;
+      toast.success("Account verified! Welcome to Primegram!");
+      navigate("/home");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      if (otpType === "phone") {
+        const { error } = await supabase.auth.resend({ type: "sms", phone: otpTarget });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.resend({ type: "signup", email: otpTarget });
+        if (error) throw error;
+      }
+      toast.success("Verification code resent!");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -102,6 +157,62 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // OTP Verification Screen
+  if (showOtpScreen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative z-10 p-4">
+        <Card className="w-full max-w-md shadow-elevated bg-black/70 backdrop-blur-xl border border-white/10">
+          <CardHeader className="space-y-4 text-center">
+            <div className="flex justify-center"><Logo /></div>
+            <CardTitle>Verify Your Account</CardTitle>
+            <CardDescription>
+              Enter the 6-digit code sent to{" "}
+              <span className="font-semibold text-primary">{otpTarget}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button
+              onClick={handleVerifyOtp}
+              className="w-full bg-gradient-to-r from-primary via-accent to-[hsl(25,95%,53%)] hover:opacity-90"
+              disabled={loading || otpValue.length !== 6}
+            >
+              {loading ? "Verifying..." : "Verify Account"}
+            </Button>
+            <div className="flex items-center justify-between text-sm">
+              <button
+                type="button"
+                onClick={() => { setShowOtpScreen(false); setOtpValue(""); }}
+                className="text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                <ArrowLeft className="h-3 w-3" /> Back
+              </button>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-primary hover:underline"
+                disabled={loading}
+              >
+                Resend Code
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (showForgotPassword) {
     return (
