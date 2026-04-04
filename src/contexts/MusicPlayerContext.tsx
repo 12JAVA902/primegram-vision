@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useEffect, useCallback, ReactNode } from "react";
 
 export interface Track {
   id: string;
@@ -18,6 +18,9 @@ interface MusicPlayerContextType {
   togglePlayPause: () => void;
   progress: number;
   duration: number;
+  queue: Track[];
+  setQueue: (tracks: Track[]) => void;
+  playNext: () => void;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType>({
@@ -28,6 +31,9 @@ const MusicPlayerContext = createContext<MusicPlayerContextType>({
   togglePlayPause: () => {},
   progress: 0,
   duration: 0,
+  queue: [],
+  setQueue: () => {},
+  playNext: () => {},
 });
 
 export const useMusicPlayer = () => useContext(MusicPlayerContext);
@@ -37,6 +43,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [queue, setQueue] = useState<Track[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animFrameRef = useRef<number>(0);
 
@@ -49,6 +56,8 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     audio.addEventListener("ended", () => {
       setIsPlaying(false);
       setProgress(0);
+      // Auto-play next track from queue
+      playNextFromQueue();
     });
 
     return () => {
@@ -57,6 +66,37 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
       cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
+
+  const playNextFromQueue = useCallback(() => {
+    if (!currentTrack || queue.length === 0) return;
+    const currentIdx = queue.findIndex(t => t.id === currentTrack?.id);
+    const nextIdx = currentIdx + 1;
+    if (nextIdx < queue.length) {
+      const next = queue[nextIdx];
+      handleSetTrack(next);
+    }
+  }, [currentTrack, queue]);
+
+  // Update the ended listener when queue/currentTrack changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      if (queue.length > 0 && currentTrack) {
+        const currentIdx = queue.findIndex(t => t.id === currentTrack.id);
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < queue.length) {
+          const next = queue[nextIdx];
+          setTimeout(() => handleSetTrack(next), 300);
+        }
+      }
+    };
+    audio.removeEventListener("ended", onEnded);
+    audio.addEventListener("ended", onEnded);
+    return () => audio.removeEventListener("ended", onEnded);
+  }, [queue, currentTrack]);
 
   useEffect(() => {
     const tick = () => {
@@ -103,6 +143,15 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const playNext = useCallback(() => {
+    if (!currentTrack || queue.length === 0) return;
+    const currentIdx = queue.findIndex(t => t.id === currentTrack.id);
+    const nextIdx = currentIdx + 1;
+    if (nextIdx < queue.length) {
+      handleSetTrack(queue[nextIdx]);
+    }
+  }, [currentTrack, queue]);
+
   return (
     <MusicPlayerContext.Provider
       value={{
@@ -113,6 +162,9 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
         togglePlayPause,
         progress,
         duration,
+        queue,
+        setQueue,
+        playNext,
       }}
     >
       {children}

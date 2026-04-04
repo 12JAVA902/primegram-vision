@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX, BookmarkCheck, Share2, Flag, Trash2, Copy } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -37,8 +37,9 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
   const [muted, setMuted] = useState(true);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const handleLike = async () => {
     if (!user || isGuest) {
@@ -86,7 +87,31 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
     } catch {
       toast.error("Failed to delete post");
     }
-    setShowDeleteConfirm(false);
+    setShowMenu(false);
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/profile/${post.profiles.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Post by ${post.profiles.username}`, text: post.caption, url });
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard!");
+    }
+    setShowMenu(false);
+  };
+
+  const handleSave = () => {
+    setSaved(!saved);
+    toast.success(saved ? "Removed from saved" : "Post saved!");
+  };
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/profile/${post.profiles.id}`);
+    toast.success("Link copied!");
+    setShowMenu(false);
   };
 
   return (
@@ -102,14 +127,27 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
           <span className="font-semibold">{post.profiles.username}</span>
         </Link>
         <div className="relative">
-          <Button variant="ghost" size="icon" onClick={() => isOwnPost && setShowDeleteConfirm(!showDeleteConfirm)}>
+          <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
             <MoreHorizontal className="h-5 w-5" />
           </Button>
-          {showDeleteConfirm && isOwnPost && (
-            <div className="absolute right-0 top-full mt-1 glass rounded-lg border border-border shadow-lg z-50 overflow-hidden">
-              <button onClick={handleDelete} className="px-4 py-2 text-sm text-destructive hover:bg-destructive/10 whitespace-nowrap">
-                Delete Post
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 glass rounded-lg border border-border shadow-lg z-50 overflow-hidden min-w-[160px]">
+              <button onClick={handleShare} className="w-full px-4 py-2.5 text-sm hover:bg-accent/10 flex items-center gap-2">
+                <Share2 className="h-4 w-4" /> Share
               </button>
+              <button onClick={handleCopyLink} className="w-full px-4 py-2.5 text-sm hover:bg-accent/10 flex items-center gap-2">
+                <Copy className="h-4 w-4" /> Copy Link
+              </button>
+              {!isOwnPost && (
+                <button onClick={() => { toast.info("Post reported"); setShowMenu(false); }} className="w-full px-4 py-2.5 text-sm hover:bg-accent/10 flex items-center gap-2 text-destructive">
+                  <Flag className="h-4 w-4" /> Report
+                </button>
+              )}
+              {isOwnPost && (
+                <button onClick={handleDelete} className="w-full px-4 py-2.5 text-sm hover:bg-destructive/10 flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-4 w-4" /> Delete
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -151,12 +189,12 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
             <Button variant="ghost" size="icon" onClick={() => isGuest ? toast.info("Sign in to comment") : setShowComments(!showComments)}>
               <MessageCircle className="h-6 w-6" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={handleShare}>
               <Send className="h-6 w-6" />
             </Button>
           </div>
-          <Button variant="ghost" size="icon">
-            <Bookmark className="h-6 w-6" />
+          <Button variant="ghost" size="icon" onClick={handleSave}>
+            {saved ? <BookmarkCheck className="h-6 w-6 text-primary" /> : <Bookmark className="h-6 w-6" />}
           </Button>
         </div>
 

@@ -1,14 +1,16 @@
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
-import { X, Music, Play, Pause } from "lucide-react";
+import { X, Music, Play, Pause, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 export const UniversalMusicPlayer = () => {
-  const { currentTrack, isPlayerVisible, isPlaying, togglePlayPause, setCurrentTrack, progress, duration } = useMusicPlayer();
+  const { currentTrack, isPlayerVisible, isPlaying, togglePlayPause, setCurrentTrack, progress, duration, playNext, queue } = useMusicPlayer();
 
   if (!isPlayerVisible || !currentTrack) return null;
 
   const pct = duration > 0 ? (progress / duration) * 100 : 0;
+  const currentIdx = queue.findIndex(t => t.id === currentTrack.id);
+  const hasNext = currentIdx >= 0 && currentIdx < queue.length - 1;
 
   return (
     <div className="fixed bottom-16 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border shadow-elevated">
@@ -33,6 +35,11 @@ export const UniversalMusicPlayer = () => {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={togglePlayPause}>
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
+          {hasNext && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={playNext}>
+              <SkipForward className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentTrack(null)}>
             <X className="h-4 w-4" />
           </Button>
