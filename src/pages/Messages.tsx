@@ -7,10 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { GroupChat } from "@/components/GroupChat";
 import { IncomingCallOverlay } from "@/components/IncomingCallOverlay";
+
 interface Message {
   id: string;
   sender_id: string;
@@ -43,72 +44,23 @@ const formatDuration = (seconds: number) => {
 };
 
 const CallOverlay = ({
-  user,
-  remoteUserId,
-  callType,
-  selectedProfile,
-  isCaller,
-  onEnd,
+  user, remoteUserId, callType, selectedProfile, isCaller, onEnd,
 }: {
-  user: { id: string };
-  remoteUserId: string;
-  callType: "audio" | "video";
-  selectedProfile: Profile | undefined;
-  isCaller: boolean;
-  onEnd: () => void;
+  user: { id: string }; remoteUserId: string; callType: "audio" | "video";
+  selectedProfile: Profile | undefined; isCaller: boolean; onEnd: () => void;
 }) => {
-  const {
-    localVideoRef,
-    remoteVideoRef,
-    isConnected,
-    isMuted,
-    isVideoOff,
-    callDuration,
-    startCall,
-    answerCall,
-    hangup,
-    toggleMute,
-    toggleVideo,
-  } = useWebRTC({
-    userId: user.id,
-    remoteUserId,
-    callType,
-    onCallEnded: onEnd,
+  const { localVideoRef, remoteVideoRef, isConnected, isMuted, isVideoOff, callDuration, startCall, answerCall, hangup, toggleMute, toggleVideo } = useWebRTC({
+    userId: user.id, remoteUserId, callType, onCallEnded: onEnd,
   });
 
   useEffect(() => {
-    if (isCaller) {
-      startCall();
-    } else {
-      answerCall();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isCaller) startCall(); else answerCall();
   }, []);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Remote video (full screen) */}
-      {callType === "video" && (
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      )}
-
-      {/* Local video (picture-in-picture) */}
-      {callType === "video" && (
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute top-4 right-4 w-28 h-40 rounded-xl object-cover border-2 border-border z-10"
-        />
-      )}
-
-      {/* Audio-only or waiting UI */}
+      {callType === "video" && <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
+      {callType === "video" && <video ref={localVideoRef} autoPlay playsInline muted className="absolute top-4 right-4 w-28 h-40 rounded-xl object-cover border-2 border-border z-10" />}
       {(callType === "audio" || !isConnected) && (
         <div className="flex-1 flex items-center justify-center z-10">
           <div className="text-center text-white">
@@ -121,22 +73,16 @@ const CallOverlay = ({
             {isConnected ? (
               <p className="text-sm text-green-400 mt-2">{formatDuration(callDuration)}</p>
             ) : (
-              <p className="text-sm text-muted-foreground mt-2 animate-pulse">
-                {isCaller ? "Calling..." : "Connecting..."}
-              </p>
+              <p className="text-sm text-muted-foreground mt-2 animate-pulse">{isCaller ? "Calling..." : "Connecting..."}</p>
             )}
           </div>
         </div>
       )}
-
-      {/* Connected timer overlay for video */}
       {callType === "video" && isConnected && (
         <div className="absolute top-4 left-4 z-10 bg-black/50 rounded-full px-3 py-1">
           <p className="text-white text-sm font-mono">{formatDuration(callDuration)}</p>
         </div>
       )}
-
-      {/* Controls */}
       <div className="p-8 flex justify-center gap-4 z-10">
         <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={toggleMute}>
           {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
@@ -150,8 +96,6 @@ const CallOverlay = ({
           <X className="h-6 w-6" />
         </Button>
       </div>
-
-      {/* Hidden audio element for audio-only calls */}
       {callType === "audio" && (
         <>
           <audio ref={localVideoRef as any} autoPlay muted className="hidden" />
@@ -177,6 +121,7 @@ const Messages = () => {
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; type: string } | null>(null);
+  const [lastMessages, setLastMessages] = useState<Record<string, Message>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: profiles } = useQuery({
@@ -188,9 +133,27 @@ const Messages = () => {
     enabled: !!user,
   });
 
+  // Fetch last messages for contact list
+  useEffect(() => {
+    if (!user || !profiles?.length) return;
+    const fetchLastMessages = async () => {
+      const map: Record<string, Message> = {};
+      for (const p of profiles) {
+        const { data } = await supabase
+          .from("messages")
+          .select("*")
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${p.id}),and(sender_id.eq.${p.id},receiver_id.eq.${user.id})`)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (data && data.length > 0) map[p.id] = data[0] as Message;
+      }
+      setLastMessages(map);
+    };
+    fetchLastMessages();
+  }, [user, profiles]);
+
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  // Incoming call listener
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -206,7 +169,6 @@ const Messages = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Message notifications
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -226,8 +188,7 @@ const Messages = () => {
     if (!user || !selectedChat) return;
     const fetchMessages = async () => {
       const { data } = await supabase
-        .from("messages")
-        .select("*")
+        .from("messages").select("*")
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedChat}),and(sender_id.eq.${selectedChat},receiver_id.eq.${user.id})`)
         .order("created_at", { ascending: true });
       setMessages(data || []);
@@ -252,8 +213,7 @@ const Messages = () => {
   };
 
   const startRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
+    setIsRecording(true); setRecordingTime(0);
     recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
   };
 
@@ -272,12 +232,7 @@ const Messages = () => {
   const startCall = async (type: "audio" | "video") => {
     if (!selectedChat || !user) return;
     setActiveCall({ type, isCaller: true });
-    await supabase.from("call_sessions").insert({
-      caller_id: user.id,
-      receiver_id: selectedChat,
-      call_type: type,
-      status: "ringing",
-    });
+    await supabase.from("call_sessions").insert({ caller_id: user.id, receiver_id: selectedChat, call_type: type, status: "ringing" });
   };
 
   const answerCall = () => {
@@ -296,20 +251,21 @@ const Messages = () => {
   if (selectedChat) {
     return (
       <div className="h-screen flex flex-col relative z-10">
-        {/* Chat header */}
         <div className="p-3 border-b border-border glass-light flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setSelectedChat(null)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={selectedProfile?.avatar_url || undefined} />
-              <AvatarFallback>{selectedProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-sm">{selectedProfile?.full_name || selectedProfile?.username}</p>
-              <p className="text-xs text-muted-foreground">@{selectedProfile?.username}</p>
-            </div>
+            <Link to={`/profile/${selectedChat}`} className="flex items-center gap-3">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={selectedProfile?.avatar_url || undefined} />
+                <AvatarFallback>{selectedProfile?.username?.[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-sm">{selectedProfile?.full_name || selectedProfile?.username}</p>
+                <p className="text-xs text-muted-foreground">@{selectedProfile?.username}</p>
+              </div>
+            </Link>
           </div>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowBgPicker(!showBgPicker)}>
@@ -324,22 +280,16 @@ const Messages = () => {
           </div>
         </div>
 
-        {/* Background picker */}
         {showBgPicker && (
           <div className="p-3 border-b border-border glass-light flex gap-2 overflow-x-auto shrink-0">
             {CHAT_BACKGROUNDS.map((bg) => (
-              <button
-                key={bg.name}
-                onClick={() => { setChatBg(bg.value); setShowBgPicker(false); }}
+              <button key={bg.name} onClick={() => { setChatBg(bg.value); setShowBgPicker(false); }}
                 className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 ${chatBg === bg.value ? "border-primary" : "border-border"}`}
-                style={{ background: bg.value || "hsl(var(--background))" }}
-                title={bg.name}
-              />
+                style={{ background: bg.value || "hsl(var(--background))" }} title={bg.name} />
             ))}
           </div>
         )}
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: chatBg || undefined }}>
           {messages.map((message) => (
             <div key={message.id} className={`flex ${message.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
@@ -352,7 +302,6 @@ const Messages = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="p-3 border-t border-border glass-light shrink-0">
           {isRecording ? (
             <div className="flex items-center gap-3">
@@ -366,44 +315,26 @@ const Messages = () => {
             </div>
           ) : (
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon" onClick={startRecording}>
-                <Mic className="h-5 w-5" />
-              </Button>
+              <Button variant="ghost" size="icon" onClick={startRecording}><Mic className="h-5 w-5" /></Button>
               <Input value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Type a message..." className="flex-1" />
-              <Button onClick={sendMessage} size="icon">
-                <Send className="h-5 w-5" />
-              </Button>
+              <Button onClick={sendMessage} size="icon"><Send className="h-5 w-5" /></Button>
             </div>
           )}
         </div>
 
-        {/* Real WebRTC call overlay */}
         {activeCall && user && selectedChat && (
-          <CallOverlay
-            user={user}
-            remoteUserId={selectedChat}
-            callType={activeCall.type}
-            selectedProfile={selectedProfile}
-            isCaller={activeCall.isCaller}
-            onEnd={() => setActiveCall(null)}
-          />
+          <CallOverlay user={user} remoteUserId={selectedChat} callType={activeCall.type}
+            selectedProfile={selectedProfile} isCaller={activeCall.isCaller} onEnd={() => setActiveCall(null)} />
         )}
-
-        {/* Incoming call overlay */}
         {incomingCall && (
-          <IncomingCallOverlay
-            callerName={incomingCallerProfile?.full_name || incomingCallerProfile?.username || "Unknown"}
-            callerAvatar={incomingCallerProfile?.avatar_url}
-            callType={incomingCall.type}
-            onAccept={answerCall}
-            onDecline={declineCall}
-          />
+          <IncomingCallOverlay callerName={incomingCallerProfile?.full_name || incomingCallerProfile?.username || "Unknown"}
+            callerAvatar={incomingCallerProfile?.avatar_url} callType={incomingCall.type}
+            onAccept={answerCall} onDecline={declineCall} />
         )}
       </div>
     );
   }
 
-  // Show group chats view
   if (showGroups) {
     return (
       <div className="h-screen flex flex-col relative z-10">
@@ -412,14 +343,21 @@ const Messages = () => {
     );
   }
 
-  // Contacts list view
+  // Sort profiles: those with messages first, by most recent
+  const sortedProfiles = [...(profiles || [])].sort((a, b) => {
+    const aMsg = lastMessages[a.id];
+    const bMsg = lastMessages[b.id];
+    if (aMsg && bMsg) return new Date(bMsg.created_at).getTime() - new Date(aMsg.created_at).getTime();
+    if (aMsg) return -1;
+    if (bMsg) return 1;
+    return 0;
+  });
+
   return (
     <div className="h-screen flex flex-col relative z-10">
       <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/home")}><ArrowLeft className="h-5 w-5" /></Button>
           <h2 className="text-xl font-semibold">Messages</h2>
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowGroups(true)}>
@@ -427,21 +365,36 @@ const Messages = () => {
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {profiles?.map((profile) => (
-          <div key={profile.id} onClick={() => setSelectedChat(profile.id)} className="p-4 cursor-pointer hover:bg-accent transition-colors flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback>{profile.username[0].toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">{profile.full_name || profile.username}</p>
-              <p className="text-sm text-muted-foreground">@{profile.username}</p>
+        {sortedProfiles.map((profile) => {
+          const last = lastMessages[profile.id];
+          return (
+            <div key={profile.id} onClick={() => setSelectedChat(profile.id)} className="p-4 cursor-pointer hover:bg-accent transition-colors flex items-center gap-3">
+              <Link to={`/profile/${profile.id}`} onClick={(e) => e.stopPropagation()}>
+                <Avatar>
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback>{profile.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{profile.full_name || profile.username}</p>
+                {last ? (
+                  <p className="text-sm text-muted-foreground truncate">
+                    {last.sender_id === user?.id ? "You: " : ""}{last.content}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                )}
+              </div>
+              {last && (
+                <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                  {new Date(last.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+                </span>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Incoming call overlay on contacts list */}
       {incomingCall && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
           <div className="text-center text-white">
