@@ -1,10 +1,9 @@
-import { Video, MessageCircle, Settings } from "lucide-react";
+import { Video, MessageCircle, Settings, Wallet } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 
 export const Header = () => {
   const location = useLocation();
-
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -12,28 +11,16 @@ export const Header = () => {
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         <Logo />
         <nav className="flex items-center gap-5">
-          <Link
-            to="/reels"
-            className={`transition-colors hover:text-primary ${
-              isActive("/reels") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
+          <Link to="/trading" className={`transition-colors hover:text-primary ${isActive("/trading") ? "text-primary" : "text-muted-foreground"}`}>
+            <Wallet className="h-6 w-6" />
+          </Link>
+          <Link to="/reels" className={`transition-colors hover:text-primary ${isActive("/reels") ? "text-primary" : "text-muted-foreground"}`}>
             <Video className="h-6 w-6" />
           </Link>
-          <Link
-            to="/messages"
-            className={`transition-colors hover:text-primary ${
-              isActive("/messages") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
+          <Link to="/messages" className={`transition-colors hover:text-primary ${isActive("/messages") ? "text-primary" : "text-muted-foreground"}`}>
             <MessageCircle className="h-6 w-6" />
           </Link>
-          <Link
-            to="/settings"
-            className={`transition-colors hover:text-primary ${
-              isActive("/settings") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
+          <Link to="/settings" className={`transition-colors hover:text-primary ${isActive("/settings") ? "text-primary" : "text-muted-foreground"}`}>
             <Settings className="h-6 w-6" />
           </Link>
         </nav>
