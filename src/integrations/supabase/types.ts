@@ -333,6 +333,80 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_songs: {
+        Row: {
+          album_art: string | null
+          artist: string
+          created_at: string
+          id: string
+          platform: string
+          playlist_id: string
+          position: number
+          preview_url: string
+          title: string
+          track_id: string
+        }
+        Insert: {
+          album_art?: string | null
+          artist: string
+          created_at?: string
+          id?: string
+          platform?: string
+          playlist_id: string
+          position?: number
+          preview_url: string
+          title: string
+          track_id: string
+        }
+        Update: {
+          album_art?: string | null
+          artist?: string
+          created_at?: string
+          id?: string
+          platform?: string
+          playlist_id?: string
+          position?: number
+          preview_url?: string
+          title?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           caption: string | null
@@ -474,6 +548,33 @@ export type Database = {
           expires_at?: string
           id?: string
           image_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
