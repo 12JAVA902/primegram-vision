@@ -59,6 +59,7 @@ const App = () => (
               <Route path="/settings/appearance" element={<Appearance />} />
               <Route path="/settings/privacy" element={<PrivacySecurity />} />
               <Route path="/music" element={<MusicHub />} />
+              <Route path="/trading" element={<Trading />} />
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
