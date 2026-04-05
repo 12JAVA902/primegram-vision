@@ -27,6 +27,7 @@ import Appearance from "./pages/Appearance";
 import PrivacySecurity from "./pages/PrivacySecurity";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import Trading from "./pages/Trading";
 
 const queryClient = new QueryClient();
 
