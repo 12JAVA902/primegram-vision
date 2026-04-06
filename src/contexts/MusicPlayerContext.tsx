@@ -5,9 +5,13 @@ export interface Track {
   title: string;
   artist: string;
   albumArt: string;
-  platform: "youtube" | "deezer" | "spotify" | "apple";
+  platform: "youtube" | "deezer" | "spotify" | "apple" | "local";
   previewUrl: string; // YouTube video ID for youtube platform
   embedUrl?: string;
+  genre?: string;
+  durationSeconds?: number;
+  isTrending?: boolean;
+  playCount?: number;
 }
 
 interface MusicPlayerContextType {
