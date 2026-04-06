@@ -5,45 +5,32 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Music, Play, Pause, TrendingUp, Link2, CheckCircle2, Loader2, ListMusic, Plus, Trash2 } from "lucide-react";
+import { Search, Music, Play, Pause, TrendingUp, Loader2, ListMusic, Plus, Trash2 } from "lucide-react";
 import { useMusicPlayer, Track } from "@/contexts/MusicPlayerContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-const PLATFORMS = [
-  { id: "spotify" as const, name: "Spotify", color: "bg-green-500", icon: "🎵" },
-  { id: "apple" as const, name: "Apple Music", color: "bg-pink-500", icon: "🎶" },
-  { id: "deezer" as const, name: "Deezer", color: "bg-purple-500", icon: "🎧" },
-];
-
-const GENRES = [
-  { label: "All", id: "0" },
-  { label: "Pop", id: "132" },
-  { label: "Hip-Hop", id: "116" },
-  { label: "R&B", id: "165" },
-  { label: "Rock", id: "152" },
-  { label: "Afrobeats", id: "2" },
-  { label: "Latin", id: "197" },
-  { label: "Electronic", id: "106" },
-];
-
-interface DeezerTrack {
-  id: number;
-  title: string;
-  artist: { name: string };
-  album: { cover_medium: string };
-  preview: string;
+interface YouTubeItem {
+  id: string | { videoId: string };
+  snippet: {
+    title: string;
+    channelTitle: string;
+    thumbnails: { medium?: { url: string }; default?: { url: string } };
+  };
 }
 
-const mapDeezerTrack = (t: DeezerTrack): Track => ({
-  id: String(t.id),
-  title: t.title,
-  artist: t.artist.name,
-  albumArt: t.album.cover_medium,
-  platform: "deezer",
-  previewUrl: t.preview,
-});
+const mapYouTubeItem = (item: YouTubeItem): Track => {
+  const videoId = typeof item.id === "string" ? item.id : item.id.videoId;
+  return {
+    id: videoId,
+    title: item.snippet.title,
+    artist: item.snippet.channelTitle,
+    albumArt: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || "",
+    platform: "youtube",
+    previewUrl: videoId, // video ID used by YT player
+  };
+};
 
 interface DBPlaylist {
   id: string;
@@ -65,8 +52,6 @@ interface DBPlaylistSong {
 const MusicHub = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("0");
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [playlists, setPlaylists] = useState<DBPlaylist[]>([]);
@@ -76,7 +61,6 @@ const MusicHub = () => {
   const [playlistSongs, setPlaylistSongs] = useState<Record<string, DBPlaylistSong[]>>({});
   const { currentTrack, setCurrentTrack, isPlaying, togglePlayPause, setQueue } = useMusicPlayer();
 
-  // Fetch playlists from DB
   const fetchPlaylists = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("playlists").select("id, name, description").eq("user_id", user.id).order("created_at", { ascending: false });
@@ -90,13 +74,17 @@ const MusicHub = () => {
     setPlaylistSongs(prev => ({ ...prev, [playlistId]: (data as DBPlaylistSong[]) || [] }));
   }, []);
 
-  const fetchChart = useCallback(async (genreId: string) => {
+  const fetchTrending = useCallback(async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-search?action=chart&genre_id=${genreId}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=trending`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
       const json = await res.json();
-      if (json.data) { const mapped = json.data.map(mapDeezerTrack); setTracks(mapped); setQueue(mapped); }
+      if (json.items) {
+        const mapped = json.items.map(mapYouTubeItem);
+        setTracks(mapped);
+        setQueue(mapped);
+      }
     } catch { toast.error("Failed to load trending tracks"); }
     finally { setLoading(false); }
   }, [setQueue]);
@@ -105,20 +93,19 @@ const MusicHub = () => {
     if (!searchQuery.trim()) return;
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-search?action=search&q=${encodeURIComponent(searchQuery)}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=search&q=${encodeURIComponent(searchQuery)}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
       const json = await res.json();
-      if (json.data) { const mapped = json.data.map(mapDeezerTrack); setTracks(mapped); setQueue(mapped); }
+      if (json.items) {
+        const mapped = json.items.map(mapYouTubeItem);
+        setTracks(mapped);
+        setQueue(mapped);
+      }
     } catch { toast.error("Search failed"); }
     finally { setLoading(false); }
   }, [searchQuery, setQueue]);
 
-  useEffect(() => { fetchChart(selectedGenre); }, [selectedGenre, fetchChart]);
-
-  const handleConnect = (platformId: string) => {
-    setConnectedPlatforms(prev => prev.includes(platformId) ? prev.filter(p => p !== platformId) : [...prev, platformId]);
-    toast.success(connectedPlatforms.includes(platformId) ? "Disconnected" : "Connected!");
-  };
+  useEffect(() => { fetchTrending(); }, [fetchTrending]);
 
   const handleTrackClick = (track: Track) => {
     if (currentTrack?.id === track.id) togglePlayPause();
@@ -261,32 +248,9 @@ const MusicHub = () => {
             <Music className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold">Prime Music</h1>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowPlaylists(true)}>
-              <ListMusic className="h-4 w-4 mr-1" /> Playlists
-            </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2"><Link2 className="h-4 w-4" />Connect</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Connect Your Music</DialogTitle></DialogHeader>
-                <div className="space-y-3 mt-4">
-                  {PLATFORMS.map(p => {
-                    const connected = connectedPlatforms.includes(p.id);
-                    return (
-                      <button key={p.id} onClick={() => handleConnect(p.id)}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${connected ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-accent/5"}`}>
-                        <span className={`w-10 h-10 rounded-lg ${p.color} flex items-center justify-center text-lg`}>{p.icon}</span>
-                        <span className="flex-1 text-left font-medium">{p.name}</span>
-                        {connected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowPlaylists(true)}>
+            <ListMusic className="h-4 w-4 mr-1" /> Playlists
+          </Button>
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -297,21 +261,12 @@ const MusicHub = () => {
           </Button>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-4">
-          {GENRES.map(genre => (
-            <Button key={genre.id} variant={selectedGenre === genre.id ? "default" : "outline"} size="sm" className="flex-shrink-0"
-              onClick={() => { setSelectedGenre(genre.id); setSearchQuery(""); }}>
-              {genre.label}
-            </Button>
-          ))}
-        </div>
-
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-accent" />
           <h2 className="text-lg font-semibold">{searchQuery ? "Search Results" : "Trending Now"}</h2>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-4">🎵 Deezer provides 30-second previews. Full playback requires a premium streaming connection.</p>
+        <p className="text-xs text-muted-foreground mb-4">🎵 Powered by YouTube — full song playback</p>
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
