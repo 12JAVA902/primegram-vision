@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 export const UniversalMusicPlayer = () => {
-  const { currentTrack, isPlayerVisible, isPlaying, togglePlayPause, setCurrentTrack, progress, duration, playNext, queue } = useMusicPlayer();
+  const { currentTrack, isPlayerVisible, isPlaying, togglePlayPause, setCurrentTrack, progress, duration, playNext, queue, seekTo } = useMusicPlayer();
 
   if (!isPlayerVisible || !currentTrack) return null;
 
@@ -12,9 +12,26 @@ export const UniversalMusicPlayer = () => {
   const currentIdx = queue.findIndex(t => t.id === currentTrack.id);
   const hasNext = currentIdx >= 0 && currentIdx < queue.length - 1;
 
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
   return (
     <div className="fixed bottom-16 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border shadow-elevated">
-      <Progress value={pct} className="h-1 rounded-none" />
+      <div
+        className="h-1 bg-muted cursor-pointer relative"
+        onClick={(e) => {
+          if (duration <= 0) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const pctClick = x / rect.width;
+          seekTo(pctClick * duration);
+        }}
+      >
+        <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+      </div>
       <div className="flex items-center gap-3 px-3 py-2 max-w-2xl mx-auto">
         {currentTrack.albumArt ? (
           <img
@@ -29,7 +46,10 @@ export const UniversalMusicPlayer = () => {
         )}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{currentTrack.title}</p>
-          <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {currentTrack.artist}
+            {duration > 0 && ` • ${formatTime(progress)} / ${formatTime(duration)}`}
+          </p>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={togglePlayPause}>
