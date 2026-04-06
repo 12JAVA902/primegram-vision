@@ -119,3 +119,68 @@ All colors MUST be HSL.
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Liquid Glass Background */
+.liquid-glass-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #000B2E 0%, #2D004F 50%, #000B2E 100%);
+}
+
+.liquid-glass-bg::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: 
+    radial-gradient(ellipse 80% 60% at 20% 30%, #FF00FF40 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 80% 70%, #2D004F80 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 50%, #FF00FF30 0%, transparent 50%);
+  animation: liquid-pulse 8s ease-in-out infinite;
+}
+
+.liquid-glass-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(120px);
+  -webkit-backdrop-filter: blur(120px);
+}
+
+@keyframes liquid-pulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+  25% {
+    transform: scale(1.1) rotate(2deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05) rotate(-1deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: scale(1.15) rotate(1deg);
+    opacity: 1;
+  }
+}
+
+/* Liquid Glass Card */
+.liquid-glass-card {
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.liquid-glass-card-light {
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

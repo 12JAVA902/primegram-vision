@@ -26,6 +26,8 @@ interface MusicPlayerContextType {
   setQueue: (tracks: Track[]) => void;
   playNext: () => void;
   seekTo: (seconds: number) => void;
+  volume: number;
+  setVolume: (volume: number) => void;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType>({
@@ -40,6 +42,8 @@ const MusicPlayerContext = createContext<MusicPlayerContextType>({
   setQueue: () => {},
   playNext: () => {},
   seekTo: () => {},
+  volume: 80,
+  setVolume: () => {},
 });
 
 export const useMusicPlayer = () => useContext(MusicPlayerContext);
@@ -74,6 +78,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [queue, setQueue] = useState<Track[]>([]);
+  const [volume, setVolumeState] = useState(80);
   const ytPlayerRef = useRef<any>(null);
   const ytContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<number>(0);
@@ -245,6 +250,14 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const setVolume = useCallback((vol: number) => {
+    setVolumeState(vol);
+    const p = ytPlayerRef.current;
+    if (p && p.setVolume) {
+      p.setVolume(vol);
+    }
+  }, []);
+
   return (
     <MusicPlayerContext.Provider
       value={{
@@ -259,6 +272,8 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
         setQueue,
         playNext,
         seekTo,
+        volume,
+        setVolume,
       }}
     >
       {children}
