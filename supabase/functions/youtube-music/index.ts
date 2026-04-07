@@ -4,6 +4,7 @@ const corsHeaders = {
 };
 
 const YOUTUBE_API = "https://www.googleapis.com/youtube/v3";
+const MUSIC_TOPIC_ID = "/m/04rlf";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const apiUrl = `${YOUTUBE_API}/search?part=snippet&type=video&videoCategoryId=10&maxResults=25&q=${encodeURIComponent(query)}&key=${apiKey}`;
+      const apiUrl = `${YOUTUBE_API}/search?part=snippet&type=video&videoCategoryId=10&topicId=${encodeURIComponent(MUSIC_TOPIC_ID)}&maxResults=25&q=${encodeURIComponent(query)}&key=${apiKey}`;
       const response = await fetch(apiUrl);
       const data = await response.json();
       return new Response(JSON.stringify(data), {
@@ -53,18 +54,14 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // YouTube removed the relatedToVideoId param; use search with the video title instead
-      // First get the video details
       const detailUrl = `${YOUTUBE_API}/videos?part=snippet&id=${encodeURIComponent(videoId)}&key=${apiKey}`;
       const detailRes = await fetch(detailUrl);
       const detailData = await detailRes.json();
       const title = detailData.items?.[0]?.snippet?.title || "";
-      // Search for similar music
       const searchTerms = title.replace(/\(.*?\)|\[.*?\]/g, "").trim().split(" ").slice(0, 4).join(" ");
-      const searchUrl = `${YOUTUBE_API}/search?part=snippet&type=video&videoCategoryId=10&maxResults=15&q=${encodeURIComponent(searchTerms + " music")}&key=${apiKey}`;
+      const searchUrl = `${YOUTUBE_API}/search?part=snippet&type=video&videoCategoryId=10&topicId=${encodeURIComponent(MUSIC_TOPIC_ID)}&maxResults=15&q=${encodeURIComponent(searchTerms + " music")}&key=${apiKey}`;
       const searchRes = await fetch(searchUrl);
       const searchData = await searchRes.json();
-      // Filter out the current video
       if (searchData.items) {
         searchData.items = searchData.items.filter((item: any) => {
           const id = typeof item.id === "string" ? item.id : item.id?.videoId;
