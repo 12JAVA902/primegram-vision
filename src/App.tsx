@@ -8,6 +8,7 @@ import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import { LiquidBackground } from "@/components/LiquidBackground";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 import { UniversalMusicPlayer } from "@/components/UniversalMusicPlayer";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <SpeedInsights />
         </TooltipProvider>
       </MusicPlayerProvider>
     </AuthProvider>
