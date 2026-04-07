@@ -11,26 +11,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-interface YouTubeItem {
-  id: string | { videoId: string };
-  snippet: {
-    title: string;
-    channelTitle: string;
-    thumbnails: { medium?: { url: string }; default?: { url: string } };
-  };
+const AUDIUS_API = "https://discovery-provider.audius.co/v1";
+const APP_NAME = "PRIMEGRAM";
+
+interface AudiusTrack {
+  id: string;
+  title: string;
+  user: { name: string };
+  artwork?: { "150x150"?: string; "480x480"?: string; "1000x1000"?: string };
+  duration: number;
 }
 
-const mapYouTubeItem = (item: YouTubeItem): Track => {
-  const videoId = typeof item.id === "string" ? item.id : item.id.videoId;
-  return {
-    id: videoId,
-    title: item.snippet.title,
-    artist: item.snippet.channelTitle,
-    albumArt: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || "",
-    platform: "youtube",
-    previewUrl: videoId, // video ID used by YT player
-  };
-};
+const mapAudiusTrack = (t: AudiusTrack): Track => ({
+  id: t.id,
+  title: t.title,
+  artist: t.user.name,
+  albumArt: t.artwork?.["480x480"] || t.artwork?.["150x150"] || "",
+  platform: "audius" as any,
+  previewUrl: `${AUDIUS_API}/tracks/${t.id}/stream?app_name=${APP_NAME}`,
+});
 
 interface DBPlaylist {
   id: string;
@@ -77,11 +76,10 @@ const MusicHub = () => {
   const fetchTrending = useCallback(async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=trending`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
+      const res = await fetch(`${AUDIUS_API}/tracks/trending?app_name=${APP_NAME}`);
       const json = await res.json();
-      if (json.items) {
-        const mapped = json.items.map(mapYouTubeItem);
+      if (json.data) {
+        const mapped = json.data.map(mapAudiusTrack);
         setTracks(mapped);
         setQueue(mapped);
       }
@@ -93,11 +91,10 @@ const MusicHub = () => {
     if (!searchQuery.trim()) return;
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=search&q=${encodeURIComponent(searchQuery)}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
+      const res = await fetch(`${AUDIUS_API}/tracks/search?query=${encodeURIComponent(searchQuery)}&app_name=${APP_NAME}`);
       const json = await res.json();
-      if (json.items) {
-        const mapped = json.items.map(mapYouTubeItem);
+      if (json.data) {
+        const mapped = json.data.map(mapAudiusTrack);
         setTracks(mapped);
         setQueue(mapped);
       }
@@ -159,7 +156,6 @@ const MusicHub = () => {
     toast.success("Removed");
   };
 
-  // Playlist view
   if (showPlaylists) {
     return (
       <div className="min-h-screen pb-32 relative z-10">
@@ -266,7 +262,7 @@ const MusicHub = () => {
           <h2 className="text-lg font-semibold">{searchQuery ? "Search Results" : "Trending Now"}</h2>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-4">🎵 Powered by YouTube — full song playback</p>
+        <p className="text-xs text-muted-foreground mb-4">🎵 Powered by Audius — full song playback</p>
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
