@@ -5,8 +5,8 @@ export interface Track {
   title: string;
   artist: string;
   albumArt: string;
-  platform: "youtube" | "deezer" | "spotify" | "apple" | "audius";
-  previewUrl: string;
+  platform: "youtube" | "deezer" | "spotify" | "apple";
+  previewUrl: string; // YouTube video ID for youtube platform
   embedUrl?: string;
 }
 
@@ -40,54 +40,73 @@ const MusicPlayerContext = createContext<MusicPlayerContextType>({
 
 export const useMusicPlayer = () => useContext(MusicPlayerContext);
 
+// Load YouTube IFrame API
+let ytApiReady = false;
+let ytApiPromise: Promise<void> | null = null;
+
+const loadYTApi = (): Promise<void> => {
+  if (ytApiReady) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise<void>((resolve) => {
+    if ((window as any).YT && (window as any).YT.Player) {
+      ytApiReady = true;
+      resolve();
+      return;
+    }
+    (window as any).onYouTubeIframeAPIReady = () => {
+      ytApiReady = true;
+      resolve();
+    };
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  });
+  return ytApiPromise;
+};
+
 export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentTrack, setCurrentTrackState] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [queue, setQueue] = useState<Track[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ytPlayerRef = useRef<any>(null);
+  const ytContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<number>(0);
   const pendingTrackRef = useRef<Track | null>(null);
 
-  // Create a single reusable Audio element
+  // Create hidden container for YT player
   useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "auto";
-    audioRef.current = audio;
+    const div = document.createElement("div");
+    div.id = "yt-player-container";
+    div.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;";
+    document.body.appendChild(div);
+    ytContainerRef.current = div;
 
-    audio.addEventListener("play", () => setIsPlaying(true));
-    audio.addEventListener("pause", () => setIsPlaying(false));
-    audio.addEventListener("ended", () => {
-      setIsPlaying(false);
-      setProgress(0);
-      // Auto-play next
-      playNextFromQueue();
-    });
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(audio.duration || 0);
-    });
-    audio.addEventListener("error", () => {
-      setIsPlaying(false);
-      playNextFromQueue();
-    });
+    const inner = document.createElement("div");
+    inner.id = "yt-player";
+    div.appendChild(inner);
 
     return () => {
-      audio.pause();
-      audio.src = "";
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy(); } catch {}
+      }
       clearInterval(timerRef.current);
+      document.body.removeChild(div);
     };
   }, []);
 
   // Progress ticker
   useEffect(() => {
-    if (isPlaying && audioRef.current) {
+    if (isPlaying && ytPlayerRef.current) {
       timerRef.current = window.setInterval(() => {
-        const a = audioRef.current;
-        if (a) {
-          setProgress(a.currentTime);
-          if (a.duration) setDuration(a.duration);
-        }
+        try {
+          const p = ytPlayerRef.current;
+          if (p && p.getCurrentTime) {
+            setProgress(p.getCurrentTime());
+            setDuration(p.getDuration());
+          }
+        } catch {}
       }, 500);
     } else {
       clearInterval(timerRef.current);
@@ -96,7 +115,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [isPlaying]);
 
   const playNextFromQueue = useCallback(() => {
-    const track = pendingTrackRef.current;
+    const track = pendingTrackRef.current || currentTrack;
     if (!track || queue.length === 0) return;
     const idx = queue.findIndex(t => t.id === track.id);
     if (idx >= 0 && idx < queue.length - 1) {
@@ -105,13 +124,70 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [queue]);
 
-  const handleSetTrack = useCallback((track: Track | null) => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const initPlayer = useCallback(async (videoId: string) => {
+    await loadYTApi();
+    const YT = (window as any).YT;
 
+    if (ytPlayerRef.current) {
+      try {
+        ytPlayerRef.current.loadVideoById(videoId);
+        return;
+      } catch {
+        try { ytPlayerRef.current.destroy(); } catch {}
+        ytPlayerRef.current = null;
+      }
+    }
+
+    const container = ytContainerRef.current;
+    if (!container) return;
+    let inner = document.getElementById("yt-player");
+    if (inner) inner.remove();
+    inner = document.createElement("div");
+    inner.id = "yt-player";
+    container.appendChild(inner);
+
+    ytPlayerRef.current = new YT.Player("yt-player", {
+      height: "1",
+      width: "1",
+      videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        rel: 0,
+      },
+      events: {
+        onReady: (e: any) => {
+          e.target.playVideo();
+          setIsPlaying(true);
+        },
+        onStateChange: (e: any) => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+            setDuration(e.target.getDuration());
+          } else if (e.data === YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          } else if (e.data === YT.PlayerState.ENDED) {
+            setIsPlaying(false);
+            setProgress(0);
+            playNextFromQueue();
+          }
+        },
+        onError: () => {
+          setIsPlaying(false);
+          playNextFromQueue();
+        },
+      },
+    });
+  }, [playNextFromQueue]);
+
+  const handleSetTrack = useCallback((track: Track | null) => {
     if (!track) {
-      audio.pause();
-      audio.src = "";
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.stopVideo(); } catch {}
+      }
       setCurrentTrackState(null);
       pendingTrackRef.current = null;
       setIsPlaying(false);
@@ -124,33 +200,38 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     pendingTrackRef.current = track;
     setProgress(0);
 
-    audio.src = track.previewUrl;
-    audio.play().catch(() => {});
-  }, []);
+    if (track.platform === "youtube") {
+      initPlayer(track.previewUrl);
+    }
+  }, [initPlayer]);
 
   const togglePlayPause = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !pendingTrackRef.current) return;
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play().catch(() => {});
-    }
-  }, [isPlaying]);
+    if (!currentTrack) return;
+    const p = ytPlayerRef.current;
+    if (!p) return;
+    try {
+      if (isPlaying) {
+        p.pauseVideo();
+        setIsPlaying(false);
+      } else {
+        p.playVideo();
+        setIsPlaying(true);
+      }
+    } catch {}
+  }, [currentTrack, isPlaying]);
 
   const playNext = useCallback(() => {
-    const track = pendingTrackRef.current;
-    if (!track || queue.length === 0) return;
-    const idx = queue.findIndex(t => t.id === track.id);
+    if (!currentTrack || queue.length === 0) return;
+    const idx = queue.findIndex(t => t.id === currentTrack.id);
     if (idx >= 0 && idx < queue.length - 1) {
       handleSetTrack(queue[idx + 1]);
     }
-  }, [queue, handleSetTrack]);
+  }, [currentTrack, queue, handleSetTrack]);
 
   const seekTo = useCallback((seconds: number) => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.currentTime = seconds;
+    const p = ytPlayerRef.current;
+    if (p && p.seekTo) {
+      p.seekTo(seconds, true);
       setProgress(seconds);
     }
   }, []);
