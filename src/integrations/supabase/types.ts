@@ -584,7 +584,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_stories: { Args: never; Returns: undefined }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      transfer_funds: {
+        Args: { _amount: number; _to_user: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
