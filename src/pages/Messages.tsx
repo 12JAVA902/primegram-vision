@@ -217,20 +217,83 @@ const Messages = () => {
     setMessageText("");
   };
 
-  const startRecording = () => {
-    setIsRecording(true); setRecordingTime(0);
-    recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+  const insertMessage = async (content: string) => {
+    if (!selectedChat || !user) return;
+    const { error } = await supabase.from("messages").insert({ sender_id: user.id, receiver_id: selectedChat, content });
+    if (error) { toast({ title: "Error", description: "Failed to send", variant: "destructive" }); return; }
+    setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: selectedChat, content, created_at: new Date().toISOString(), read_at: null }]);
+    await supabase.from("notifications").insert({ user_id: selectedChat, from_user_id: user.id, type: "message", title: "New message", body: content.substring(0, 100) });
+  };
+
+  const uploadToStorage = async (blob: Blob, ext: string) => {
+    if (!user) return null;
+    const path = `${user.id}/messages/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("posts").upload(path, blob, { contentType: blob.type, upsert: false });
+    if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); return null; }
+    const { data } = supabase.storage.from("posts").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user || !selectedChat) return;
+    if (file.size > 25 * 1024 * 1024) { toast({ title: "File too large", description: "Max 25MB", variant: "destructive" }); return; }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || (file.type.startsWith("video") ? "mp4" : "jpg");
+    const url = await uploadToStorage(file, ext);
+    setUploading(false);
+    if (!url) return;
+    const prefix = file.type.startsWith("video") ? "[video]" : "[image]";
+    await insertMessage(`${prefix}${url}`);
+  };
+
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({ title: "Mic unavailable", variant: "destructive" }); return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      recordedChunksRef.current = [];
+      recordStartRef.current = Date.now();
+      mr.ondataavailable = (ev) => { if (ev.data.size > 0) recordedChunksRef.current.push(ev.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const duration = Math.max(1, Math.round((Date.now() - recordStartRef.current) / 1000));
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        setUploading(true);
+        const url = await uploadToStorage(blob, "webm");
+        setUploading(false);
+        if (url) await insertMessage(`[voice]${url}|${duration}`);
+      };
+      mr.start();
+      setIsRecording(true); setRecordingTime(0);
+      recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch {
+      toast({ title: "Microphone permission denied", variant: "destructive" });
+    }
   };
 
   const stopRecording = () => {
     setIsRecording(false);
     if (recordingInterval.current) clearInterval(recordingInterval.current);
-    if (selectedChat && user) {
-      const voiceMsg = `🎤 Voice message (${recordingTime}s)`;
-      supabase.from("messages").insert({ sender_id: user.id, receiver_id: selectedChat, content: voiceMsg }).then(() => {
-        setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: selectedChat!, content: voiceMsg, created_at: new Date().toISOString(), read_at: null }]);
-      });
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setRecordingTime(0);
+  };
+
+  const cancelRecording = () => {
+    setIsRecording(false);
+    if (recordingInterval.current) clearInterval(recordingInterval.current);
+    const mr = mediaRecorderRef.current;
+    if (mr) {
+      mr.onstop = () => mr.stream.getTracks().forEach((t) => t.stop());
+      mr.stop();
     }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
     setRecordingTime(0);
   };
 
