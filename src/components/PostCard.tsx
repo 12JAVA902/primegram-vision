@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX, BookmarkCheck, Share2, Flag, Trash2, Copy } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX, BookmarkCheck, Share2, Flag, Trash2, Copy, Loader2 } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
