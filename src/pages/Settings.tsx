@@ -24,7 +24,6 @@ const Settings = () => {
     { icon: Palette, label: "Appearance", onClick: () => navigate("/settings/appearance") },
     { icon: Shield, label: "Privacy & Security", onClick: () => navigate("/settings/privacy") },
     { icon: Music, label: "Music Hub", onClick: () => navigate("/music") },
-    { icon: ShieldCheck, label: "Admin Panel", onClick: () => navigate("/admin") },
     { icon: Download, label: "Download APK", onClick: () => toast.info("APK download will be available soon. Check back later!") },
     { icon: Info, label: "About Primegram", onClick: () => toast.info("Primegram v1.0 — Sponsored by JAVA PRIME & JP7 ULTRA") },
   ];
