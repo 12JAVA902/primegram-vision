@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { LogOut, User, Shield, Bell, Palette, Info, Download, Music, ShieldCheck } from "lucide-react";
+import { LogOut, User, Shield, Bell, Palette, Info, Download, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
