@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Search, PlusSquare, User } from "lucide-react";
+import { Home, Search, PlusSquare, User, Film } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,6 +20,7 @@ export const BottomNav = () => {
   const navItems = [
     { to: "/home", icon: Home, label: "Home" },
     { to: "/explore", icon: Search, label: "Search" },
+    { to: "/reels", icon: Film, label: "Reels" },
     { to: "/create", icon: PlusSquare, label: "Create" },
     { to: `/profile/${user?.id}`, icon: User, label: "Profile" },
   ];
