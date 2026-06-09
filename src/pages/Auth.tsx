@@ -337,12 +337,6 @@ const Auth = () => {
               </button>
             </div>
           )}
-          <div className="mt-6 pt-4 border-t border-border text-center">
-            <Link to="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
-              <Shield className="h-4 w-4" />
-              Administrator Login
-            </Link>
-          </div>
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Sponsored by <span className="font-semibold">JAVA PRIME</span> & <span className="font-semibold">JP7 ULTRA</span>
           </p>
