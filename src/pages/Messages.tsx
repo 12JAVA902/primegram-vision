@@ -106,6 +106,49 @@ const CallOverlay = ({
   );
 };
 
+const MessageContent = ({ content, own }: { content: string; own: boolean }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  if (content.startsWith("[image]")) {
+    const url = content.slice(7);
+    return <img src={url} alt="" className="rounded-xl max-w-full max-h-80 object-cover" loading="lazy" />;
+  }
+  if (content.startsWith("[video]")) {
+    const url = content.slice(7);
+    return (
+      <video src={url} controls playsInline preload="metadata" className="rounded-xl max-w-full max-h-80" />
+    );
+  }
+  if (content.startsWith("[voice]")) {
+    const rest = content.slice(7);
+    const [url, durStr] = rest.split("|");
+    const duration = parseInt(durStr || "0", 10);
+    const toggle = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (a.paused) { a.play(); setPlaying(true); } else { a.pause(); setPlaying(false); }
+    };
+    return (
+      <div className="flex items-center gap-2 min-w-[160px]">
+        <button
+          onClick={toggle}
+          className={`h-9 w-9 rounded-full flex items-center justify-center ${own ? "bg-primary-foreground/20" : "bg-foreground/10"}`}
+          aria-label={playing ? "Pause voice note" : "Play voice note"}
+        >
+          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </button>
+        <div className="flex-1">
+          <div className="h-1 rounded-full bg-current opacity-30" />
+          <p className="text-[11px] opacity-70 mt-1">Voice • {duration}s</p>
+        </div>
+        <audio ref={audioRef} src={url} onEnded={() => setPlaying(false)} onPause={() => setPlaying(false)} onPlay={() => setPlaying(true)} preload="metadata" />
+      </div>
+    );
+  }
+  return <p className="text-sm whitespace-pre-wrap break-words">{content}</p>;
+};
+
 const Messages = () => {
   const { user } = useAuth();
   const { toast } = useToast();
