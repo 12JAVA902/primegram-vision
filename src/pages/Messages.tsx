@@ -116,6 +116,11 @@ const Messages = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordStartRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [activeCall, setActiveCall] = useState<{ type: "audio" | "video"; isCaller: boolean } | null>(null);
   const [chatBg, setChatBg] = useState("");
   const [showBgPicker, setShowBgPicker] = useState(false);
