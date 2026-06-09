@@ -359,20 +359,26 @@ const Messages = () => {
         )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: chatBg || undefined }}>
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${message.sender_id === user?.id ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                <p className="text-sm">{message.content}</p>
-                <p className="text-[10px] opacity-60 mt-1">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+          {messages.map((message) => {
+            const own = message.sender_id === user?.id;
+            return (
+              <div key={message.id} className={`flex ${own ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] rounded-2xl ${own ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} ${message.content.startsWith("[image]") || message.content.startsWith("[video]") ? "p-1.5" : "px-4 py-2"}`}>
+                  <MessageContent content={message.content} own={own} />
+                  <p className={`text-[10px] opacity-60 mt-1 ${message.content.startsWith("[image]") || message.content.startsWith("[video]") ? "px-2 pb-1" : ""}`}>{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+
         <div className="p-3 border-t border-border glass-light shrink-0">
           {isRecording ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button onClick={cancelRecording} size="icon" variant="ghost" className="rounded-full"><X className="h-5 w-5" /></Button>
               <div className="flex-1 flex items-center gap-2 bg-destructive/10 rounded-full px-4 py-2">
                 <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
                 <span className="text-sm font-medium">Recording... {recordingTime}s</span>
@@ -382,13 +388,17 @@ const Messages = () => {
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" onClick={startRecording}><Mic className="h-5 w-5" /></Button>
+            <div className="flex gap-2 items-center">
+              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={startRecording} disabled={uploading}><Mic className="h-5 w-5" /></Button>
               <Input value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Type a message..." className="flex-1" />
               <Button onClick={sendMessage} size="icon"><Send className="h-5 w-5" /></Button>
             </div>
           )}
         </div>
+
 
         {activeCall && user && selectedChat && (
           <CallOverlay user={user} remoteUserId={selectedChat} callType={activeCall.type}
