@@ -71,8 +71,17 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
         loop
         playsInline
         muted={muted}
+        preload="metadata"
         onClick={handleVideoClick}
+        onLoadedData={() => setLoading(false)}
+        onWaiting={() => setLoading(true)}
+        onPlaying={() => setLoading(false)}
       />
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <Loader2 className="h-10 w-10 animate-spin text-white/80" />
+        </div>
+      )}
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 pointer-events-none" />
