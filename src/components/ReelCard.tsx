@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Send, MoreVertical, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Send, MoreVertical, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
