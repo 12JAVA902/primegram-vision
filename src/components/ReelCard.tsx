@@ -29,6 +29,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const [liked, setLiked] = useState(false);
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
