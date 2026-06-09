@@ -44,6 +44,24 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [showComments, setShowComments] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: [0, 0.6, 1] }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [post.video_url]);
+
+
   const handleLike = async () => {
     if (!user || isGuest) {
       if (isGuest) toast.info("Sign in to like posts");
