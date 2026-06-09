@@ -19,8 +19,7 @@ import Reels from "./pages/Reels";
 import ReelsDashboard from "./pages/ReelsDashboard";
 import Notifications from "./pages/Notifications";
 import Messages from "./pages/Messages";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
+import People from "./pages/People";
 import Settings from "./pages/Settings";
 import MusicHub from "./pages/MusicHub";
 import Appearance from "./pages/Appearance";
@@ -60,8 +59,7 @@ const App = () => (
               <Route path="/settings/privacy" element={<PrivacySecurity />} />
               <Route path="/music" element={<MusicHub />} />
               <Route path="/trading" element={<Trading />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/people" element={<People />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
