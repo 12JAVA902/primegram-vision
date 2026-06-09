@@ -500,7 +500,7 @@ const Messages = () => {
                 <p className="font-medium">{profile.full_name || profile.username}</p>
                 {last ? (
                   <p className="text-sm text-muted-foreground truncate">
-                    {last.sender_id === user?.id ? "You: " : ""}{last.content}
+                    {last.sender_id === user?.id ? "You: " : ""}{last.content.startsWith("[image]") ? "📷 Photo" : last.content.startsWith("[video]") ? "🎬 Video" : last.content.startsWith("[voice]") ? "🎤 Voice note" : last.content}
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground">@{profile.username}</p>
