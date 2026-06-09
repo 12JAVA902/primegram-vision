@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Send, MoreVertical, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Send, MoreVertical, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const [liked, setLiked] = useState(false);
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
@@ -70,8 +71,17 @@ export const ReelCard = ({ reel, isActive }: ReelCardProps) => {
         loop
         playsInline
         muted={muted}
+        preload="metadata"
         onClick={handleVideoClick}
+        onLoadedData={() => setLoading(false)}
+        onWaiting={() => setLoading(true)}
+        onPlaying={() => setLoading(false)}
       />
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <Loader2 className="h-10 w-10 animate-spin text-white/80" />
+        </div>
+      )}
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 pointer-events-none" />

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users } from "lucide-react";
+import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users, Paperclip, Play, Pause, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -106,6 +106,49 @@ const CallOverlay = ({
   );
 };
 
+const MessageContent = ({ content, own }: { content: string; own: boolean }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  if (content.startsWith("[image]")) {
+    const url = content.slice(7);
+    return <img src={url} alt="" className="rounded-xl max-w-full max-h-80 object-cover" loading="lazy" />;
+  }
+  if (content.startsWith("[video]")) {
+    const url = content.slice(7);
+    return (
+      <video src={url} controls playsInline preload="metadata" className="rounded-xl max-w-full max-h-80" />
+    );
+  }
+  if (content.startsWith("[voice]")) {
+    const rest = content.slice(7);
+    const [url, durStr] = rest.split("|");
+    const duration = parseInt(durStr || "0", 10);
+    const toggle = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (a.paused) { a.play(); setPlaying(true); } else { a.pause(); setPlaying(false); }
+    };
+    return (
+      <div className="flex items-center gap-2 min-w-[160px]">
+        <button
+          onClick={toggle}
+          className={`h-9 w-9 rounded-full flex items-center justify-center ${own ? "bg-primary-foreground/20" : "bg-foreground/10"}`}
+          aria-label={playing ? "Pause voice note" : "Play voice note"}
+        >
+          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </button>
+        <div className="flex-1">
+          <div className="h-1 rounded-full bg-current opacity-30" />
+          <p className="text-[11px] opacity-70 mt-1">Voice • {duration}s</p>
+        </div>
+        <audio ref={audioRef} src={url} onEnded={() => setPlaying(false)} onPause={() => setPlaying(false)} onPlay={() => setPlaying(true)} preload="metadata" />
+      </div>
+    );
+  }
+  return <p className="text-sm whitespace-pre-wrap break-words">{content}</p>;
+};
+
 const Messages = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -116,6 +159,11 @@ const Messages = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordStartRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [activeCall, setActiveCall] = useState<{ type: "audio" | "video"; isCaller: boolean } | null>(null);
   const [chatBg, setChatBg] = useState("");
   const [showBgPicker, setShowBgPicker] = useState(false);
@@ -212,20 +260,83 @@ const Messages = () => {
     setMessageText("");
   };
 
-  const startRecording = () => {
-    setIsRecording(true); setRecordingTime(0);
-    recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+  const insertMessage = async (content: string) => {
+    if (!selectedChat || !user) return;
+    const { error } = await supabase.from("messages").insert({ sender_id: user.id, receiver_id: selectedChat, content });
+    if (error) { toast({ title: "Error", description: "Failed to send", variant: "destructive" }); return; }
+    setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: selectedChat, content, created_at: new Date().toISOString(), read_at: null }]);
+    await supabase.from("notifications").insert({ user_id: selectedChat, from_user_id: user.id, type: "message", title: "New message", body: content.substring(0, 100) });
+  };
+
+  const uploadToStorage = async (blob: Blob, ext: string) => {
+    if (!user) return null;
+    const path = `${user.id}/messages/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("posts").upload(path, blob, { contentType: blob.type, upsert: false });
+    if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); return null; }
+    const { data } = supabase.storage.from("posts").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user || !selectedChat) return;
+    if (file.size > 25 * 1024 * 1024) { toast({ title: "File too large", description: "Max 25MB", variant: "destructive" }); return; }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || (file.type.startsWith("video") ? "mp4" : "jpg");
+    const url = await uploadToStorage(file, ext);
+    setUploading(false);
+    if (!url) return;
+    const prefix = file.type.startsWith("video") ? "[video]" : "[image]";
+    await insertMessage(`${prefix}${url}`);
+  };
+
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({ title: "Mic unavailable", variant: "destructive" }); return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      recordedChunksRef.current = [];
+      recordStartRef.current = Date.now();
+      mr.ondataavailable = (ev) => { if (ev.data.size > 0) recordedChunksRef.current.push(ev.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const duration = Math.max(1, Math.round((Date.now() - recordStartRef.current) / 1000));
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        setUploading(true);
+        const url = await uploadToStorage(blob, "webm");
+        setUploading(false);
+        if (url) await insertMessage(`[voice]${url}|${duration}`);
+      };
+      mr.start();
+      setIsRecording(true); setRecordingTime(0);
+      recordingInterval.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch {
+      toast({ title: "Microphone permission denied", variant: "destructive" });
+    }
   };
 
   const stopRecording = () => {
     setIsRecording(false);
     if (recordingInterval.current) clearInterval(recordingInterval.current);
-    if (selectedChat && user) {
-      const voiceMsg = `🎤 Voice message (${recordingTime}s)`;
-      supabase.from("messages").insert({ sender_id: user.id, receiver_id: selectedChat, content: voiceMsg }).then(() => {
-        setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: selectedChat!, content: voiceMsg, created_at: new Date().toISOString(), read_at: null }]);
-      });
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setRecordingTime(0);
+  };
+
+  const cancelRecording = () => {
+    setIsRecording(false);
+    if (recordingInterval.current) clearInterval(recordingInterval.current);
+    const mr = mediaRecorderRef.current;
+    if (mr) {
+      mr.onstop = () => mr.stream.getTracks().forEach((t) => t.stop());
+      mr.stop();
     }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
     setRecordingTime(0);
   };
 
@@ -291,20 +402,26 @@ const Messages = () => {
         )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: chatBg || undefined }}>
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${message.sender_id === user?.id ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                <p className="text-sm">{message.content}</p>
-                <p className="text-[10px] opacity-60 mt-1">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+          {messages.map((message) => {
+            const own = message.sender_id === user?.id;
+            return (
+              <div key={message.id} className={`flex ${own ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] rounded-2xl ${own ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} ${message.content.startsWith("[image]") || message.content.startsWith("[video]") ? "p-1.5" : "px-4 py-2"}`}>
+                  <MessageContent content={message.content} own={own} />
+                  <p className={`text-[10px] opacity-60 mt-1 ${message.content.startsWith("[image]") || message.content.startsWith("[video]") ? "px-2 pb-1" : ""}`}>{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+
         <div className="p-3 border-t border-border glass-light shrink-0">
           {isRecording ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button onClick={cancelRecording} size="icon" variant="ghost" className="rounded-full"><X className="h-5 w-5" /></Button>
               <div className="flex-1 flex items-center gap-2 bg-destructive/10 rounded-full px-4 py-2">
                 <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
                 <span className="text-sm font-medium">Recording... {recordingTime}s</span>
@@ -314,13 +431,17 @@ const Messages = () => {
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" onClick={startRecording}><Mic className="h-5 w-5" /></Button>
+            <div className="flex gap-2 items-center">
+              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={startRecording} disabled={uploading}><Mic className="h-5 w-5" /></Button>
               <Input value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Type a message..." className="flex-1" />
               <Button onClick={sendMessage} size="icon"><Send className="h-5 w-5" /></Button>
             </div>
           )}
         </div>
+
 
         {activeCall && user && selectedChat && (
           <CallOverlay user={user} remoteUserId={selectedChat} callType={activeCall.type}
@@ -379,7 +500,7 @@ const Messages = () => {
                 <p className="font-medium">{profile.full_name || profile.username}</p>
                 {last ? (
                   <p className="text-sm text-muted-foreground truncate">
-                    {last.sender_id === user?.id ? "You: " : ""}{last.content}
+                    {last.sender_id === user?.id ? "You: " : ""}{last.content.startsWith("[image]") ? "📷 Photo" : last.content.startsWith("[video]") ? "🎬 Video" : last.content.startsWith("[voice]") ? "🎤 Voice note" : last.content}
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground">@{profile.username}</p>

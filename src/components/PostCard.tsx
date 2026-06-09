@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX, BookmarkCheck, Share2, Flag, Trash2, Copy } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Volume2, VolumeX, BookmarkCheck, Share2, Flag, Trash2, Copy, Loader2 } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -37,9 +37,30 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [videoLoading, setVideoLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: [0, 0.6, 1] }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [post.video_url]);
+
 
   const handleLike = async () => {
     if (!user || isGuest) {
@@ -154,30 +175,53 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
       </div>
 
       {isVideo ? (
-        <div className="relative">
+        <div className="relative bg-black/40">
+          {videoLoading && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+            </div>
+          )}
           <video
+            ref={videoRef}
             src={post.video_url}
             className="w-full aspect-[4/5] object-cover"
-            autoPlay
             loop
             muted={muted}
             playsInline
+            preload="metadata"
+            onLoadedData={() => setVideoLoading(false)}
+            onWaiting={() => setVideoLoading(true)}
+            onPlaying={() => setVideoLoading(false)}
           />
           <Button
             variant="ghost"
             size="icon"
-            className="absolute bottom-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full h-8 w-8"
-            onClick={() => setMuted(!muted)}
+            className="absolute bottom-3 right-3 bg-black/60 text-white hover:bg-black/80 rounded-full h-9 w-9 z-20"
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = !muted;
+              setMuted(next);
+              if (videoRef.current) videoRef.current.muted = next;
+            }}
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </Button>
         </div>
       ) : (
-        <img
-          src={post.image_url}
-          alt="Post"
-          className="w-full aspect-[4/5] object-cover"
-        />
+        <div className="relative bg-black/20">
+          {imageLoading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+            </div>
+          )}
+          <img
+            src={post.image_url}
+            alt="Post"
+            loading="lazy"
+            onLoad={() => setImageLoading(false)}
+            className="w-full aspect-[4/5] object-cover"
+          />
+        </div>
       )}
 
       <div className="p-4 space-y-3">
