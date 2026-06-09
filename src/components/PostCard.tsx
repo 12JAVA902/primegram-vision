@@ -37,6 +37,9 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [videoLoading, setVideoLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [saved, setSaved] = useState(false);
