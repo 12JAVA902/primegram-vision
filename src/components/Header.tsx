@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, MessageCircle, Settings, Wallet } from "lucide-react";
+import { Users, MessageCircle, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 
@@ -38,9 +38,6 @@ export const Header = () => {
             scrolled ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
-          <Link to="/trading" className={`transition-colors hover:text-primary ${isActive("/trading") ? "text-primary" : "text-muted-foreground"}`}>
-            <Wallet className="h-6 w-6" />
-          </Link>
           <Link to="/people" className={`transition-colors hover:text-primary ${isActive("/people") ? "text-primary" : "text-muted-foreground"}`}>
             <Users className="h-6 w-6" />
           </Link>
