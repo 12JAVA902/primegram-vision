@@ -26,13 +26,18 @@ const Reels = () => {
     try {
       const { data, error } = await supabase
         .from("reels")
-        .select(`id, video_url, caption, views, thumbnail_url, created_at, profiles:user_id (id, username, avatar_url)`)
+        .select(`id, video_url, caption, views, thumbnail_url, created_at, user_id, profiles:user_id (id, username, avatar_url), likes(count), comments(count)`)
         .order("created_at", { ascending: false })
         .limit(30);
       if (error) throw error;
-      setReels(data || []);
-    } catch {
-      console.error("Error fetching reels");
+      const enriched = (data || []).map((r: any) => ({
+        ...r,
+        likes_count: r.likes?.[0]?.count ?? 0,
+        comments_count: r.comments?.[0]?.count ?? 0,
+      }));
+      setReels(enriched);
+    } catch (e) {
+      console.error("Error fetching reels", e);
     } finally {
       setLoading(false);
     }
