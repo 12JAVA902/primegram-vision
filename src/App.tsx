@@ -43,7 +43,6 @@ const App = () => (
           <RealtimeNotifications />
           <UniversalMusicPlayer />
           <BrowserRouter>
-            <FloatingHub>
             <Routes>
               <Route path="/" element={<Welcome />} />
               <Route path="/landing" element={<Index />} />
