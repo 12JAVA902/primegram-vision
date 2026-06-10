@@ -24,15 +24,45 @@ const Reels = () => {
 
   const fetchReels = async () => {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("reels")
-        .select(`id, video_url, caption, views, thumbnail_url, created_at, profiles:user_id (id, username, avatar_url)`)
+        .select(`id, video_url, caption, views, thumbnail_url, created_at, user_id, profiles:user_id (id, username, avatar_url), likes(count), comments(count)`)
         .order("created_at", { ascending: false })
         .limit(30);
-      if (error) throw error;
-      setReels(data || []);
-    } catch {
-      console.error("Error fetching reels");
+      if (error) {
+        const fb = await supabase
+          .from("reels")
+          .select(`id, video_url, caption, views, thumbnail_url, created_at, user_id, profiles:user_id (id, username, avatar_url)`)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (fb.error) throw fb.error;
+        data = fb.data as any;
+      }
+      const items = (data || []) as any[];
+      const enriched = await Promise.all(
+        items.map(async (r: any) => {
+          let likes_count = r.likes?.[0]?.count;
+          let comments_count = r.comments?.[0]?.count;
+          if (likes_count === undefined) {
+            const { count } = await supabase
+              .from("likes")
+              .select("id", { count: "exact", head: true })
+              .eq("post_id", r.id);
+            likes_count = count ?? 0;
+          }
+          if (comments_count === undefined) {
+            const { count } = await supabase
+              .from("comments")
+              .select("id", { count: "exact", head: true })
+              .eq("post_id", r.id);
+            comments_count = count ?? 0;
+          }
+          return { ...r, likes_count, comments_count };
+        })
+      );
+      setReels(enriched);
+    } catch (e) {
+      console.error("Error fetching reels", e);
     } finally {
       setLoading(false);
     }

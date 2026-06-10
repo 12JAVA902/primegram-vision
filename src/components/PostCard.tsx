@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import { useVideoOutro } from "@/components/VideoOutro";
 
 interface PostCardProps {
   post: {
@@ -43,6 +44,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { overlay: outroOverlay } = useVideoOutro(videoRef);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -185,7 +187,6 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
             ref={videoRef}
             src={post.video_url}
             className="w-full aspect-[4/5] object-cover"
-            loop
             muted={muted}
             playsInline
             preload="metadata"
@@ -193,6 +194,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
             onWaiting={() => setVideoLoading(true)}
             onPlaying={() => setVideoLoading(false)}
           />
+          {outroOverlay}
           <Button
             variant="ghost"
             size="icon"

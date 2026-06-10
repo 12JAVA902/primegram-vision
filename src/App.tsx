@@ -8,6 +8,7 @@ import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import { LiquidBackground } from "@/components/LiquidBackground";
 import { RealtimeNotifications } from "@/components/RealtimeNotifications";
 import { UniversalMusicPlayer } from "@/components/UniversalMusicPlayer";
+import { FloatingHub } from "@/components/FloatingHub";
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -27,6 +28,7 @@ import PrivacySecurity from "./pages/PrivacySecurity";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Trading from "./pages/Trading";
+import Sports from "./pages/Sports";
 
 const queryClient = new QueryClient();
 
@@ -59,10 +61,12 @@ const App = () => (
               <Route path="/settings/privacy" element={<PrivacySecurity />} />
               <Route path="/music" element={<MusicHub />} />
               <Route path="/trading" element={<Trading />} />
+              <Route path="/sports" element={<Sports />} />
               <Route path="/people" element={<People />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <FloatingHub />
           </BrowserRouter>
         </TooltipProvider>
       </MusicPlayerProvider>

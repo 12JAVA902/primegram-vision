@@ -25,9 +25,10 @@ interface CommentsSectionProps {
   postId: string;
   isOpen: boolean;
   onClose: () => void;
+  onCountChange?: (n: number) => void;
 }
 
-export const CommentsSection = ({ postId, isOpen, onClose }: CommentsSectionProps) => {
+export const CommentsSection = ({ postId, isOpen, onClose, onCountChange }: CommentsSectionProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -47,7 +48,9 @@ export const CommentsSection = ({ postId, isOpen, onClose }: CommentsSectionProp
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      setComments((data as any) || []);
+      const list = (data as any) || [];
+      setComments(list);
+      onCountChange?.(list.length);
     } catch {
       toast.error("Failed to load comments");
     } finally {
