@@ -42,8 +42,8 @@ const App = () => (
           <Sonner />
           <RealtimeNotifications />
           <UniversalMusicPlayer />
-          <FloatingHub />
           <BrowserRouter>
+            <FloatingHub>
             <Routes>
               <Route path="/" element={<Welcome />} />
               <Route path="/landing" element={<Index />} />
@@ -67,6 +67,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <FloatingHub />
           </BrowserRouter>
         </TooltipProvider>
       </MusicPlayerProvider>
