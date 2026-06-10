@@ -64,17 +64,44 @@ const People = () => {
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-2xl">
         <h1 className="text-2xl font-bold mb-1">People to follow</h1>
-        <p className="text-sm text-muted-foreground mb-6">Discover new creators on Primegram</p>
+        <p className="text-sm text-muted-foreground mb-4">Discover new creators on Primegram</p>
+
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search people by name or username..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-11 h-12 rounded-full liquid-glass border-none"
+          />
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : people.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No one to suggest yet</p>
+        ) : people.filter((p) => {
+            const q = query.trim().toLowerCase();
+            if (!q) return true;
+            return (
+              p.username?.toLowerCase().includes(q) ||
+              p.full_name?.toLowerCase().includes(q)
+            );
+          }).length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">No matching people</p>
         ) : (
           <div className="space-y-3">
-            {people.map((p) => {
+            {people
+              .filter((p) => {
+                const q = query.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  p.username?.toLowerCase().includes(q) ||
+                  p.full_name?.toLowerCase().includes(q)
+                );
+              })
+              .map((p) => {
               const isFollowing = following.has(p.id);
               return (
                 <Card key={p.id} className="p-3 flex items-center gap-3">
