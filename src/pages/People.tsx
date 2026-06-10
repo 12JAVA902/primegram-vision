@@ -5,9 +5,10 @@ import { BottomNav } from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, UserPlus, Check } from "lucide-react";
+import { Loader2, UserPlus, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const People = () => {
@@ -15,6 +16,7 @@ const People = () => {
   const [people, setPeople] = useState<any[]>([]);
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const load = async () => {
