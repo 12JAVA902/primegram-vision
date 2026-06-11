@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { useVideoOutro } from "@/components/VideoOutro";
+import { useGlobalMute } from "@/hooks/useGlobalMute";
 
 interface PostCardProps {
   post: {
@@ -37,7 +38,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
   );
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [loading, setLoading] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useGlobalMute();
   const [videoLoading, setVideoLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -201,9 +202,7 @@ export const PostCard = ({ post, onLikeChange, isGuest }: PostCardProps) => {
             className="absolute bottom-3 right-3 bg-black/60 text-white hover:bg-black/80 rounded-full h-9 w-9 z-20"
             onClick={(e) => {
               e.stopPropagation();
-              const next = !muted;
-              setMuted(next);
-              if (videoRef.current) videoRef.current.muted = next;
+              setMuted(!muted);
             }}
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
