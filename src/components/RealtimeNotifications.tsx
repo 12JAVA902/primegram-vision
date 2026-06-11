@@ -23,77 +23,86 @@ export const RealtimeNotifications = () => {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Skip realtime notifications if Supabase credentials are not configured
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+      return;
+    }
 
-    // Listen for incoming calls
-    const callChannel = supabase
-      .channel("incoming-calls")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "call_sessions",
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const call = payload.new as any;
-          if (call.status === "ringing") {
-            // Fetch caller profile
-            const { data: caller } = await supabase
+    try {
+      // Listen for incoming calls
+      const callChannel = supabase
+        .channel("incoming-calls")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "call_sessions",
+            filter: `receiver_id=eq.${user.id}`,
+          },
+          async (payload) => {
+            const call = payload.new as any;
+            if (call.status === "ringing") {
+              // Fetch caller profile
+              const { data: caller } = await supabase
+                .from("profiles")
+                .select("username, full_name, avatar_url")
+                .eq("id", call.caller_id)
+                .single();
+
+              setIncomingCall({
+                callerId: call.caller_id,
+                type: call.call_type,
+                callerName: caller?.full_name || caller?.username || "Unknown",
+                callerAvatar: caller?.avatar_url || null,
+              });
+
+              // Auto-dismiss after 30s
+              setTimeout(() => setIncomingCall(null), 30000);
+            }
+          }
+        )
+        .subscribe();
+
+      // Listen for incoming messages
+      const msgChannel = supabase
+        .channel("incoming-messages")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `receiver_id=eq.${user.id}`,
+          },
+          async (payload) => {
+            const msg = payload.new as any;
+            const { data: sender } = await supabase
               .from("profiles")
-              .select("username, full_name, avatar_url")
-              .eq("id", call.caller_id)
+              .select("username")
+              .eq("id", msg.sender_id)
               .single();
 
-            setIncomingCall({
-              callerId: call.caller_id,
-              type: call.call_type,
-              callerName: caller?.full_name || caller?.username || "Unknown",
-              callerAvatar: caller?.avatar_url || null,
+            toast.info(`New message from ${sender?.username || "someone"}`, {
+              duration: 5000,
+              icon: <MessageCircle className="h-5 w-5 text-primary" />,
+              action: {
+                label: "Reply",
+                onClick: () => window.location.assign("/messages"),
+              },
             });
-
-            // Auto-dismiss after 30s
-            setTimeout(() => setIncomingCall(null), 30000);
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    // Listen for incoming messages
-    const msgChannel = supabase
-      .channel("incoming-messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const msg = payload.new as any;
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("username")
-            .eq("id", msg.sender_id)
-            .single();
-
-          toast.info(`New message from ${sender?.username || "someone"}`, {
-            duration: 5000,
-            icon: <MessageCircle className="h-5 w-5 text-primary" />,
-            action: {
-              label: "Reply",
-              onClick: () => window.location.assign("/messages"),
-            },
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(callChannel);
-      supabase.removeChannel(msgChannel);
-    };
+      return () => {
+        supabase.removeChannel(callChannel);
+        supabase.removeChannel(msgChannel);
+      };
+    } catch (error) {
+      console.error("[RealtimeNotifications] Failed to setup channels:", error);
+    }
   }, [user]);
 
   const handleAccept = () => {
