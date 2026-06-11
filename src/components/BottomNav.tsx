@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Search, PlusSquare, User, LayoutGrid } from "lucide-react";
+import { Home, Search, PlusSquare, User, Film } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
