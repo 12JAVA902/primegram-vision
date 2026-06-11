@@ -11,7 +11,7 @@ export const FloatingHub = () => {
     return null;
 
   return (
-    <div className="fixed right-4 bottom-28 z-40 flex flex-col items-end gap-3">
+    <div className="fixed right-4 bottom-40 z-40 flex flex-col items-end gap-3">
       {open && (
         <>
           <Link
