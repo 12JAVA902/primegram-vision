@@ -34,6 +34,20 @@ const Create = () => {
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Pick up a photo captured from the /camera route
+  useEffect(() => {
+    const data = sessionStorage.getItem("camera_capture");
+    if (data) {
+      sessionStorage.removeItem("camera_capture");
+      setPreview(data);
+      setMediaType("image");
+      // Convert data URL to File so handleSubmit's upload path still works
+      fetch(data)
+        .then((r) => r.blob())
+        .then((blob) => setFile(new File([blob], "camera.jpg", { type: "image/jpeg" })));
+    }
+  }, []);
+
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
   const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
