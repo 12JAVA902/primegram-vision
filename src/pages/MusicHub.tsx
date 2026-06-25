@@ -49,6 +49,30 @@ interface DBPlaylistSong {
   position: number;
 }
 
+// Hard-coded curated tracks (YouTube video IDs) — always available in the app
+const HARDCODED_TRACKS: Track[] = [
+  { id: "kJQP7kiw5Fk", title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", albumArt: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg", platform: "youtube", previewUrl: "kJQP7kiw5Fk" },
+  { id: "JGwWNGJdvx8", title: "Shape of You", artist: "Ed Sheeran", albumArt: "https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg", platform: "youtube", previewUrl: "JGwWNGJdvx8" },
+  { id: "OPf0YbXqDm0", title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", albumArt: "https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg", platform: "youtube", previewUrl: "OPf0YbXqDm0" },
+  { id: "RgKAFK5djSk", title: "See You Again", artist: "Wiz Khalifa ft. Charlie Puth", albumArt: "https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg", platform: "youtube", previewUrl: "RgKAFK5djSk" },
+  { id: "fLexgOxsZu0", title: "Counting Stars", artist: "OneRepublic", albumArt: "https://i.ytimg.com/vi/hT_nvWreIhg/hqdefault.jpg", platform: "youtube", previewUrl: "hT_nvWreIhg" },
+  { id: "9bZkp7q19f0", title: "Gangnam Style", artist: "PSY", albumArt: "https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg", platform: "youtube", previewUrl: "9bZkp7q19f0" },
+  { id: "CevxZvSJLk8", title: "Roar", artist: "Katy Perry", albumArt: "https://i.ytimg.com/vi/CevxZvSJLk8/hqdefault.jpg", platform: "youtube", previewUrl: "CevxZvSJLk8" },
+  { id: "YQHsXMglC9A", title: "Hello", artist: "Adele", albumArt: "https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg", platform: "youtube", previewUrl: "YQHsXMglC9A" },
+  { id: "nfWlot6h_JM", title: "Shake It Off", artist: "Taylor Swift", albumArt: "https://i.ytimg.com/vi/nfWlot6h_JM/hqdefault.jpg", platform: "youtube", previewUrl: "nfWlot6h_JM" },
+  { id: "7PCkvCPvDXk", title: "Last Last", artist: "Burna Boy", albumArt: "https://i.ytimg.com/vi/7PCkvCPvDXk/hqdefault.jpg", platform: "youtube", previewUrl: "7PCkvCPvDXk" },
+  { id: "UceaB4D0jpo", title: "Calm Down", artist: "Rema & Selena Gomez", albumArt: "https://i.ytimg.com/vi/WcIcVapfqXw/hqdefault.jpg", platform: "youtube", previewUrl: "WcIcVapfqXw" },
+  { id: "AwenvBJI_5o", title: "Essence", artist: "Wizkid ft. Tems", albumArt: "https://i.ytimg.com/vi/r9-DM9uBtVI/hqdefault.jpg", platform: "youtube", previewUrl: "r9-DM9uBtVI" },
+  { id: "lWA2pjMjpBs", title: "Love Nwantiti", artist: "CKay", albumArt: "https://i.ytimg.com/vi/qFLhGq0060w/hqdefault.jpg", platform: "youtube", previewUrl: "qFLhGq0060w" },
+  { id: "TQTlCHxyuu8", title: "Unavailable", artist: "Davido ft. Musa Keys", albumArt: "https://i.ytimg.com/vi/TQTlCHxyuu8/hqdefault.jpg", platform: "youtube", previewUrl: "TQTlCHxyuu8" },
+  { id: "TmKh7lAwnBI", title: "Rush", artist: "Ayra Starr", albumArt: "https://i.ytimg.com/vi/TmKh7lAwnBI/hqdefault.jpg", platform: "youtube", previewUrl: "TmKh7lAwnBI" },
+  { id: "JaTBHfdjuOk", title: "Sicko Mode", artist: "Travis Scott", albumArt: "https://i.ytimg.com/vi/6ONRf7h3Mdk/hqdefault.jpg", platform: "youtube", previewUrl: "6ONRf7h3Mdk" },
+  { id: "ru0K8uYEZWw", title: "God's Plan", artist: "Drake", albumArt: "https://i.ytimg.com/vi/xpVfcZ0ZcFM/hqdefault.jpg", platform: "youtube", previewUrl: "xpVfcZ0ZcFM" },
+  { id: "papuvlVeZg8", title: "HUMBLE.", artist: "Kendrick Lamar", albumArt: "https://i.ytimg.com/vi/tvTRZJ-4EyI/hqdefault.jpg", platform: "youtube", previewUrl: "tvTRZJ-4EyI" },
+  { id: "b1kbLwvqugk", title: "Blinding Lights", artist: "The Weeknd", albumArt: "https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg", platform: "youtube", previewUrl: "4NRXx6U8ABQ" },
+  { id: "kTJczUoc26U", title: "Anti-Hero", artist: "Taylor Swift", albumArt: "https://i.ytimg.com/vi/b1kbLwvqugk/hqdefault.jpg", platform: "youtube", previewUrl: "b1kbLwvqugk" },
+];
+
 const MusicHub = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,13 +104,19 @@ const MusicHub = () => {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=trending`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
       const json = await res.json();
-      if (json.items) {
-        const mapped = json.items.map(mapYouTubeItem);
-        setTracks(mapped);
-        setQueue(mapped);
-      }
-    } catch { toast.error("Failed to load trending tracks"); }
-    finally { setLoading(false); }
+      const trending: Track[] = json.items ? json.items.map(mapYouTubeItem) : [];
+      // Always include hard-coded curated tracks at the top
+      const combined = [...HARDCODED_TRACKS, ...trending.filter((t) => !HARDCODED_TRACKS.some((h) => h.id === t.id))];
+      setTracks(combined);
+      setQueue(combined);
+    } catch {
+      // Even on failure show the hard-coded tracks
+      setTracks(HARDCODED_TRACKS);
+      setQueue(HARDCODED_TRACKS);
+      toast.error("Failed to load trending — showing curated tracks");
+    } finally {
+      setLoading(false);
+    }
   }, [setQueue]);
 
   const handleSearch = useCallback(async () => {

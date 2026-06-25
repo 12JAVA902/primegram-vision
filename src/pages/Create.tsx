@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -9,9 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Upload, Loader2, Image as ImageIcon, Video } from "lucide-react";
+import { Upload, Loader2, Camera as CameraIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FILTERS = [
   { name: "Normal", css: "" },
@@ -34,6 +33,20 @@ const Create = () => {
   const [selectedFilter, setSelectedFilter] = useState(0);
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Pick up a photo captured from the /camera route
+  useEffect(() => {
+    const data = sessionStorage.getItem("camera_capture");
+    if (data) {
+      sessionStorage.removeItem("camera_capture");
+      setPreview(data);
+      setMediaType("image");
+      // Convert data URL to File so handleSubmit's upload path still works
+      fetch(data)
+        .then((r) => r.blob())
+        .then((blob) => setFile(new File([blob], "camera.jpg", { type: "image/jpeg" })));
+    }
+  }, []);
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -127,8 +140,11 @@ const Create = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-elevated">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-2xl">Create New Post</CardTitle>
+            <Button type="button" size="sm" variant="secondary" onClick={() => navigate("/camera")} className="gap-1">
+              <CameraIcon className="h-4 w-4" /> Camera
+            </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

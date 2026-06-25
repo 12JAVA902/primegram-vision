@@ -29,6 +29,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Trading from "./pages/Trading";
 import Sports from "./pages/Sports";
+import Camera from "./pages/Camera";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/music" element={<MusicHub />} />
               <Route path="/trading" element={<Trading />} />
               <Route path="/sports" element={<Sports />} />
+              <Route path="/camera" element={<Camera />} />
               <Route path="/people" element={<People />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

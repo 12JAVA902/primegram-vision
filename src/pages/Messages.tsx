@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users, Paperclip, Play, Pause, Loader2 } from "lucide-react";
+import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users, Paperclip, Play, Pause, Loader2, Bot } from "lucide-react";
+import { generateAiReply } from "@/lib/primeAiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -170,7 +171,22 @@ const Messages = () => {
   const [showGroups, setShowGroups] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; type: string } | null>(null);
   const [lastMessages, setLastMessages] = useState<Record<string, Message>>({});
+  const [aiChats, setAiChats] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ai_chats") || "[]")); } catch { return new Set(); }
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const persistAiChats = (s: Set<string>) => {
+    setAiChats(new Set(s));
+    localStorage.setItem("ai_chats", JSON.stringify([...s]));
+  };
+  const toggleAiForCurrentChat = () => {
+    if (!selectedChat) return;
+    const next = new Set(aiChats);
+    if (next.has(selectedChat)) next.delete(selectedChat); else next.add(selectedChat);
+    persistAiChats(next);
+    toast({ title: next.has(selectedChat) ? "AI mode ON" : "AI mode OFF", description: next.has(selectedChat) ? "Prime AI will reply on your behalf in this chat." : "Auto-replies disabled." });
+  };
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles"],
@@ -221,16 +237,43 @@ const Messages = () => {
     if (!user) return;
     const channel = supabase
       .channel("msg-notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, async (payload) => {
         const msg = payload.new as Message;
         if (msg.sender_id !== selectedChat) {
           const sender = profiles?.find(p => p.id === msg.sender_id);
           toast({ title: `New message from ${sender?.username || "someone"}`, description: msg.content.substring(0, 80) });
         }
+        // AI auto-reply on the user's behalf when enabled for this chat
+        if (aiChats.has(msg.sender_id) && !msg.content.startsWith("[")) {
+          try {
+            const { data: history } = await supabase
+              .from("messages")
+              .select("sender_id, content, created_at")
+              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${msg.sender_id}),and(sender_id.eq.${msg.sender_id},receiver_id.eq.${user.id})`)
+              .order("created_at", { ascending: true })
+              .limit(20);
+            const convo = (history || []).map((m: any) => ({
+              role: (m.sender_id === user.id ? "assistant" : "user") as "assistant" | "user",
+              content: String(m.content || ""),
+            })).filter((m) => !m.content.startsWith("["));
+            const reply = await generateAiReply([
+              { role: "system", content: "You are replying in a casual chat ON BEHALF OF the user. Match their casual tone. Keep replies short (1-2 sentences), friendly, and natural — never reveal you are an AI." },
+              ...convo,
+            ]);
+            if (reply) {
+              await supabase.from("messages").insert({ sender_id: user.id, receiver_id: msg.sender_id, content: reply });
+              if (msg.sender_id === selectedChat) {
+                setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: msg.sender_id, content: reply, created_at: new Date().toISOString(), read_at: null }]);
+              }
+            }
+          } catch (e) {
+            console.error("AI auto-reply failed", e);
+          }
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, selectedChat, profiles]);
+  }, [user, selectedChat, profiles, aiChats]);
 
   useEffect(() => {
     if (!user || !selectedChat) return;
@@ -379,6 +422,15 @@ const Messages = () => {
             </Link>
           </div>
           <div className="flex gap-1">
+            <Button
+              variant={aiChats.has(selectedChat) ? "default" : "ghost"}
+              size="icon"
+              className={`h-8 w-8 ${aiChats.has(selectedChat) ? "bg-gradient-to-r from-primary to-accent text-white" : ""}`}
+              onClick={toggleAiForCurrentChat}
+              title="AI Mode — let Prime AI reply on your behalf"
+            >
+              <Bot className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowBgPicker(!showBgPicker)}>
               <Palette className="h-4 w-4" />
             </Button>
@@ -390,6 +442,11 @@ const Messages = () => {
             </Button>
           </div>
         </div>
+        {aiChats.has(selectedChat) && (
+          <div className="px-3 py-1.5 text-[11px] text-center bg-gradient-to-r from-primary/20 to-accent/20 border-b border-border">
+            🤖 AI Mode is ON — Prime AI will auto-reply to new messages from this contact.
+          </div>
+        )}
 
         {showBgPicker && (
           <div className="p-3 border-b border-border glass-light flex gap-2 overflow-x-auto shrink-0">
