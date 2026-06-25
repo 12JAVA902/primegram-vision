@@ -140,8 +140,11 @@ const Create = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-elevated">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-2xl">Create New Post</CardTitle>
+            <Button type="button" size="sm" variant="secondary" onClick={() => navigate("/camera")} className="gap-1">
+              <CameraIcon className="h-4 w-4" /> Camera
+            </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
