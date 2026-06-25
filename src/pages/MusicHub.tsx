@@ -104,13 +104,19 @@ const MusicHub = () => {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-music?action=trending`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } });
       const json = await res.json();
-      if (json.items) {
-        const mapped = json.items.map(mapYouTubeItem);
-        setTracks(mapped);
-        setQueue(mapped);
-      }
-    } catch { toast.error("Failed to load trending tracks"); }
-    finally { setLoading(false); }
+      const trending: Track[] = json.items ? json.items.map(mapYouTubeItem) : [];
+      // Always include hard-coded curated tracks at the top
+      const combined = [...HARDCODED_TRACKS, ...trending.filter((t) => !HARDCODED_TRACKS.some((h) => h.id === t.id))];
+      setTracks(combined);
+      setQueue(combined);
+    } catch {
+      // Even on failure show the hard-coded tracks
+      setTracks(HARDCODED_TRACKS);
+      setQueue(HARDCODED_TRACKS);
+      toast.error("Failed to load trending — showing curated tracks");
+    } finally {
+      setLoading(false);
+    }
   }, [setQueue]);
 
   const handleSearch = useCallback(async () => {
