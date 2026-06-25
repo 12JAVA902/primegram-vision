@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users, Paperclip, Play, Pause, Loader2 } from "lucide-react";
+import { Phone, Video, Send, X, Mic, MicOff, VideoOff as VideoOffIcon, ArrowLeft, Palette, Users, Paperclip, Play, Pause, Loader2, Bot } from "lucide-react";
+import { generateAiReply } from "@/lib/primeAiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -170,7 +171,22 @@ const Messages = () => {
   const [showGroups, setShowGroups] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; type: string } | null>(null);
   const [lastMessages, setLastMessages] = useState<Record<string, Message>>({});
+  const [aiChats, setAiChats] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ai_chats") || "[]")); } catch { return new Set(); }
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const persistAiChats = (s: Set<string>) => {
+    setAiChats(new Set(s));
+    localStorage.setItem("ai_chats", JSON.stringify([...s]));
+  };
+  const toggleAiForCurrentChat = () => {
+    if (!selectedChat) return;
+    const next = new Set(aiChats);
+    if (next.has(selectedChat)) next.delete(selectedChat); else next.add(selectedChat);
+    persistAiChats(next);
+    toast({ title: next.has(selectedChat) ? "AI mode ON" : "AI mode OFF", description: next.has(selectedChat) ? "Prime AI will reply on your behalf in this chat." : "Auto-replies disabled." });
+  };
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles"],
