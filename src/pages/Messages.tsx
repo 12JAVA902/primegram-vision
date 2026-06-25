@@ -422,6 +422,15 @@ const Messages = () => {
             </Link>
           </div>
           <div className="flex gap-1">
+            <Button
+              variant={aiChats.has(selectedChat) ? "default" : "ghost"}
+              size="icon"
+              className={`h-8 w-8 ${aiChats.has(selectedChat) ? "bg-gradient-to-r from-primary to-accent text-white" : ""}`}
+              onClick={toggleAiForCurrentChat}
+              title="AI Mode — let Prime AI reply on your behalf"
+            >
+              <Bot className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowBgPicker(!showBgPicker)}>
               <Palette className="h-4 w-4" />
             </Button>
@@ -433,6 +442,11 @@ const Messages = () => {
             </Button>
           </div>
         </div>
+        {aiChats.has(selectedChat) && (
+          <div className="px-3 py-1.5 text-[11px] text-center bg-gradient-to-r from-primary/20 to-accent/20 border-b border-border">
+            🤖 AI Mode is ON — Prime AI will auto-reply to new messages from this contact.
+          </div>
+        )}
 
         {showBgPicker && (
           <div className="p-3 border-b border-border glass-light flex gap-2 overflow-x-auto shrink-0">
