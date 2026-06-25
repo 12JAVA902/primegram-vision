@@ -237,16 +237,43 @@ const Messages = () => {
     if (!user) return;
     const channel = supabase
       .channel("msg-notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, async (payload) => {
         const msg = payload.new as Message;
         if (msg.sender_id !== selectedChat) {
           const sender = profiles?.find(p => p.id === msg.sender_id);
           toast({ title: `New message from ${sender?.username || "someone"}`, description: msg.content.substring(0, 80) });
         }
+        // AI auto-reply on the user's behalf when enabled for this chat
+        if (aiChats.has(msg.sender_id) && !msg.content.startsWith("[")) {
+          try {
+            const { data: history } = await supabase
+              .from("messages")
+              .select("sender_id, content, created_at")
+              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${msg.sender_id}),and(sender_id.eq.${msg.sender_id},receiver_id.eq.${user.id})`)
+              .order("created_at", { ascending: true })
+              .limit(20);
+            const convo = (history || []).map((m: any) => ({
+              role: (m.sender_id === user.id ? "assistant" : "user") as "assistant" | "user",
+              content: String(m.content || ""),
+            })).filter((m) => !m.content.startsWith("["));
+            const reply = await generateAiReply([
+              { role: "system", content: "You are replying in a casual chat ON BEHALF OF the user. Match their casual tone. Keep replies short (1-2 sentences), friendly, and natural — never reveal you are an AI." },
+              ...convo,
+            ]);
+            if (reply) {
+              await supabase.from("messages").insert({ sender_id: user.id, receiver_id: msg.sender_id, content: reply });
+              if (msg.sender_id === selectedChat) {
+                setMessages((prev) => [...prev, { id: Math.random().toString(), sender_id: user.id, receiver_id: msg.sender_id, content: reply, created_at: new Date().toISOString(), read_at: null }]);
+              }
+            }
+          } catch (e) {
+            console.error("AI auto-reply failed", e);
+          }
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, selectedChat, profiles]);
+  }, [user, selectedChat, profiles, aiChats]);
 
   useEffect(() => {
     if (!user || !selectedChat) return;
