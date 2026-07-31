@@ -135,11 +135,32 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error(result.error.message || "Google sign-in failed");
+        return;
+      }
+      if (result.redirected) return;
+      toast.success("Welcome back!");
+      navigate("/home");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGuestLogin = () => {
     sessionStorage.setItem("guest_mode", "true");
     toast.success("Welcome, Guest! You can browse posts and videos.");
     navigate("/home");
   };
+
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
