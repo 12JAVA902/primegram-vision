@@ -10,6 +10,7 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, KeyRound, Phone, Mail, ArrowLeft } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
