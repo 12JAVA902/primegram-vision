@@ -22,8 +22,9 @@ interface SuggestedProfile {
 }
 
 const Profile = () => {
-  const { userId } = useParams();
-  const { user } = useAuth();
+  const { userId: userIdParam } = useParams();
+  const { user, loading: authLoading } = useAuth();
+  const userId = userIdParam && userIdParam !== "undefined" ? userIdParam : user?.id;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
@@ -40,6 +41,10 @@ const Profile = () => {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   const isOwnProfile = user?.id === userId;
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/auth");
+  }, [authLoading, user, navigate]);
 
   useEffect(() => {
     if (userId) {

@@ -21,11 +21,11 @@ const People = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: profiles } = await supabase
+        let profilesQuery = supabase
           .from("profiles")
-          .select("id, username, avatar_url, full_name, bio")
-          .neq("id", user?.id || "")
-          .limit(50);
+          .select("id, username, avatar_url, full_name, bio");
+        if (user) profilesQuery = profilesQuery.neq("id", user.id);
+        const { data: profiles } = await profilesQuery.limit(50);
         setPeople(profiles || []);
 
         if (user) {
