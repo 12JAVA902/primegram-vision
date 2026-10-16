@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,10 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext ? oauthReturnPath(rawNext) : "/home";
+  const nextUrl = new URL(nextPath, window.location.origin).href;
   const { user } = useAuth();
 
   // OTP verification state
@@ -33,7 +38,7 @@ const Auth = () => {
   const [otpType, setOtpType] = useState<"email" | "phone">("email");
 
   useEffect(() => {
-    if (user) navigate("/home");
+    if (user) navigate(nextPath);
   }, [user, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -52,7 +57,7 @@ const Auth = () => {
           if (error) throw error;
         }
         toast.success("Welcome back!");
-        navigate("/home");
+        navigate(nextPath);
       } else {
         if (signupMethod === "phone") {
           if (!phone.startsWith("+")) {
@@ -76,7 +81,7 @@ const Auth = () => {
             email,
             password,
             options: {
-              emailRedirectTo: `${window.location.origin}/home`,
+              emailRedirectTo: nextUrl,
               data: { username, full_name: fullName },
             },
           });
@@ -109,7 +114,7 @@ const Auth = () => {
       const { error } = await supabase.auth.verifyOtp(verifyPayload);
       if (error) throw error;
       toast.success("Account verified! Welcome to Primegram!");
-      navigate("/home");
+      navigate(nextPath);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -139,7 +144,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: nextUrl,
       });
       if (result.error) {
         toast.error(result.error.message || "Google sign-in failed");
@@ -147,7 +152,7 @@ const Auth = () => {
       }
       if (result.redirected) return;
       toast.success("Welcome back!");
-      navigate("/home");
+      navigate(nextPath);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -159,7 +164,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: window.location.origin,
+        redirect_uri: nextUrl,
       });
       if (result.error) {
         toast.error(result.error.message || "Apple sign-in failed");
@@ -167,7 +172,7 @@ const Auth = () => {
       }
       if (result.redirected) return;
       toast.success("Welcome back!");
-      navigate("/home");
+      navigate(nextPath);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -178,7 +183,7 @@ const Auth = () => {
   const handleGuestLogin = () => {
     sessionStorage.setItem("guest_mode", "true");
     toast.success("Welcome, Guest! You can browse posts and videos.");
-    navigate("/home");
+    navigate(nextPath);
   };
 
 
