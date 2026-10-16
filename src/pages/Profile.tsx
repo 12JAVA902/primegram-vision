@@ -43,6 +43,10 @@ const Profile = () => {
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
+    if (!loading && !user) navigate("/auth");
+  }, [loading, user, navigate]);
+
+  useEffect(() => {
     if (userId) {
       fetchProfile();
       fetchPosts();
