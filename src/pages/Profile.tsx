@@ -23,7 +23,7 @@ interface SuggestedProfile {
 
 const Profile = () => {
   const { userId: userIdParam } = useParams();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const userId = userIdParam && userIdParam !== "undefined" ? userIdParam : user?.id;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
