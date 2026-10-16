@@ -22,7 +22,7 @@ export const BottomNav = () => {
     { to: "/explore", icon: Search, label: "Discover" },
     { to: "/camera", icon: Camera, label: "Post" },
     { to: "/reels", icon: Film, label: "Reels" },
-    { to: `/profile/${user?.id}`, icon: User, label: "Profile" },
+    { to: user ? `/profile/${user.id}` : "/auth", icon: User, label: "Profile" },
   ];
 
   return (
