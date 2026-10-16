@@ -23,7 +23,7 @@ interface SuggestedProfile {
 
 const Profile = () => {
   const { userId: userIdParam } = useParams();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const userId = userIdParam && userIdParam !== "undefined" ? userIdParam : user?.id;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
@@ -43,8 +43,8 @@ const Profile = () => {
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth");
-  }, [loading, user, navigate]);
+    if (!authLoading && !user) navigate("/auth");
+  }, [authLoading, user, navigate]);
 
   useEffect(() => {
     if (userId) {
