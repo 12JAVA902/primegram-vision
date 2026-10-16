@@ -155,6 +155,26 @@ const Auth = () => {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error(result.error.message || "Apple sign-in failed");
+        return;
+      }
+      if (result.redirected) return;
+      toast.success("Welcome back!");
+      navigate("/home");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGuestLogin = () => {
     sessionStorage.setItem("guest_mode", "true");
     toast.success("Welcome, Guest! You can browse posts and videos.");
